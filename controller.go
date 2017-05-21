@@ -152,9 +152,9 @@ func (ctrl *Controller) GetSession(ctx *gin.Context) session.ISession {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 保存短信验证码
+ * 保存会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) SaveSession(ctx *gin.Context, name, value interface{}) {
+func (ctrl *Controller) SaveSessionValue(ctx *gin.Context, name, value interface{}) {
 	//保存手机验证码
 	session := ctrl.GetSession(ctx)
 	session.Set(name, value)
@@ -162,9 +162,9 @@ func (ctrl *Controller) SaveSession(ctx *gin.Context, name, value interface{}) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 校验验证码
+ * 校验会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string) bool {
+func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value string) bool {
 	isSuccess := true
 
 	if len(name) == 0 || len(value) == 0 {
