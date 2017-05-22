@@ -31,11 +31,11 @@ type IActionResult interface {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	ActionResult struct {
-		context     *gin.Context
-		data        interface{}
-		contentType string
-		statusCode  int
-		isAbort     bool
+		Context     *gin.Context
+		ContentData interface{}
+		ContentType string
+		StatusCode  int
+		IsAbort     bool
 	}
 )
 
@@ -43,82 +43,82 @@ type (
  * 渲染Html模版
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Html(template string, args ...interface{}) {
-	if result.context.IsAborted() {
+	if result.Context.IsAborted() {
 		return
 	}
 
-	//result.context.Writer.WriteHeader(200)
-	//result.context.Writer.WriteString("hahah liuming")
-	//result.context.Writer.Write([]byte("2016"))
-	//result.context.WriteHeader(w.status)
-	//result.context.Abort()
+	//result.Context.Writer.WriteHeader(200)
+	//result.Context.Writer.WriteString("hahah liuming")
+	//result.Context.Writer.Write([]byte("2016"))
+	//result.Context.WriteHeader(w.status)
+	//result.Context.Abort()
 
-	render.Html(result.context, template, args...)
+	render.Html(result.Context, template, args...)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 渲染Json字符串
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Json(args ...interface{}) {
-	if result.context.IsAborted() {
+	if result.Context.IsAborted() {
 		return
 	}
-	render.Json(result.context, args...)
+	render.Json(result.Context, args...)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 渲染字符串
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) String(args ...interface{}) {
-	if result.context.IsAborted() {
+	if result.Context.IsAborted() {
 		return
 	}
 
-	render.String(result.context, args...)
+	render.String(result.Context, args...)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 渲染Xml
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Xml(args ...interface{}) {
-	if result.context.IsAborted() {
+	if result.Context.IsAborted() {
 		return
 	}
 
-	render.Xml(result.context, args...)
+	render.Xml(result.Context, args...)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 渲染磁盘物理文件
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) File(filepath string) {
-	if result.context.IsAborted() {
+	if result.Context.IsAborted() {
 		return
 	}
 
-	render.File(result.context, filepath)
+	render.File(result.Context, filepath)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 渲染字节数据
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Data(data []byte, args ...interface{}) {
-	if result.context.IsAborted() {
+	if result.Context.IsAborted() {
 		return
 	}
 
-	render.Data(result.context, data, args...)
+	render.Data(result.Context, data, args...)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 渲染io数据流
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Stream(step func(w io.Writer) bool) {
-	if result.context.IsAborted() {
+	if result.Context.IsAborted() {
 		return
 	}
 
-	render.Stream(result.context, step)
+	render.Stream(result.Context, step)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -132,5 +132,5 @@ func (result *ActionResult) Error(msg string) {
  * 渲染err数据流
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Redirect(url string) {
-	render.Redirect(result.context, url)
+	render.Redirect(result.Context, url)
 }

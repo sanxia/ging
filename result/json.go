@@ -30,25 +30,25 @@ type (
 func JsonResult(context *gin.Context, data interface{}, args ...interface{}) ging.IActionResult {
 	result := &jsonResult{}
 
-	result.context = context
-	result.data = data
-	result.contentType = "json"
-	result.statusCode = 200
+	result.Context = context
+	result.ContentData = data
+	result.ContentType = "json"
+	result.StatusCode = 200
 
 	argsCount := len(args)
 	if argsCount == 1 {
 		switch value := args[0].(type) {
 		case int:
-			result.statusCode = value
+			result.StatusCode = value
 		case bool:
-			result.isAbort = value
+			result.IsAbort = value
 		}
 	} else if argsCount == 2 {
 		if statusCode, ok := args[0].(int); ok {
-			result.statusCode = statusCode
+			result.StatusCode = statusCode
 		}
 		if isAbort, ok := args[1].(bool); ok {
-			result.isAbort = isAbort
+			result.IsAbort = isAbort
 		}
 
 	}
@@ -60,5 +60,5 @@ func JsonResult(context *gin.Context, data interface{}, args ...interface{}) gin
  * 渲染
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (r *jsonResult) Render() {
-	r.Json(r.data, r.statusCode, r.isAbort)
+	r.Json(r.ContentData, r.StatusCode, r.IsAbort)
 }

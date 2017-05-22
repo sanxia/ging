@@ -21,7 +21,7 @@ import (
 type (
 	htmlResult struct {
 		ging.ActionResult
-		tmpl string
+		Tmpl string
 	}
 )
 
@@ -30,29 +30,29 @@ type (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func HtmlResult(context *gin.Context, tmpl string, args ...interface{}) ging.IActionResult {
 	result := &htmlResult{
-		tmpl: tmpl,
+		Tmpl: tmpl,
 	}
 
-	result.context = context
-	result.contentType = "html"
-	result.statusCode = 200
+	result.Context = context
+	result.ContentType = "html"
+	result.StatusCode = 200
 
 	argsCount := len(args)
 	if argsCount > 0 {
-		result.data = args[0]
+		result.ContentData = args[0]
 		if argsCount == 2 {
 			switch value := args[1].(type) {
 			case int:
-				result.statusCode = value
+				result.StatusCode = value
 			case bool:
-				result.isAbort = value
+				result.IsAbort = value
 			}
 		} else if argsCount == 3 {
 			if statusCode, ok := args[1].(int); ok {
-				result.statusCode = statusCode
+				result.StatusCode = statusCode
 			}
 			if isAbort, ok := args[2].(bool); ok {
-				result.isAbort = isAbort
+				result.IsAbort = isAbort
 			}
 		}
 	}
@@ -63,5 +63,5 @@ func HtmlResult(context *gin.Context, tmpl string, args ...interface{}) ging.IAc
  * 渲染
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (r *htmlResult) Render() {
-	r.Html(r.tmpl, r.data, r.statusCode, r.isAbort)
+	r.Html(r.Tmpl, r.ContentData, r.StatusCode, r.IsAbort)
 }

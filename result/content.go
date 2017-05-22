@@ -30,10 +30,10 @@ type (
 func ContentResult(context *gin.Context, data interface{}, args ...interface{}) ging.IActionResult {
 	result := &contentResult{}
 
-	result.context = context
-	result.data = data
-	result.contentType = "text/plain"
-	result.statusCode = 200
+	result.Context = context
+	result.ContentData = data
+	result.ContentType = "text/plain"
+	result.StatusCode = 200
 
 	argsCount := len(args)
 	if argsCount == 1 {
@@ -60,5 +60,5 @@ func ContentResult(context *gin.Context, data interface{}, args ...interface{}) 
  * 渲染
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (r *contentResult) Render() {
-	r.String(r.data, r.statusCode, r.isAbort)
+	r.String(r.ContentData, r.StatusCode, r.IsAbort)
 }

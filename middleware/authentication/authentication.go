@@ -30,7 +30,6 @@ type (
 	}
 
 	FormsAuthenticationExtend struct {
-		App               string                     //应用名称
 		EncryptKey        string                     //加密key
 		Role              string                     //角色（多个之间用逗号分隔）
 		PassUrls          []string                   //直接通过的url
@@ -141,11 +140,16 @@ func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *UserIden
 		return false
 	}
 
+	path := "/"
+	if len(forms.Extend.Cookie.Path) > 0 {
+		path = forms.Extend.Cookie.Path
+	}
+
 	cookie := http.Cookie{
 		Name:   forms.Extend.Cookie.Name,
 		Value:  userIdentityTicket,
 		MaxAge: forms.Extend.Cookie.MaxAge,
-		Path:   forms.Extend.Cookie.Path,
+		Path:   path,
 		Domain: forms.Extend.Cookie.Domain,
 	}
 	http.SetCookie(ctx.Writer, &cookie)
@@ -157,11 +161,16 @@ func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *UserIden
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (forms *FormsAuthentication) Logoff(ctx *gin.Context) bool {
+	path := "/"
+	if len(forms.Extend.Cookie.Path) > 0 {
+		path = forms.Extend.Cookie.Path
+	}
+
 	cookie := http.Cookie{
 		Name:   forms.Extend.Cookie.Name,
 		Value:  "_",
 		MaxAge: 0,
-		Path:   forms.Extend.Cookie.Path,
+		Path:   path,
 		Domain: forms.Extend.Cookie.Domain,
 	}
 	http.SetCookie(ctx.Writer, &cookie)

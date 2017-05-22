@@ -21,7 +21,7 @@ import (
 type (
 	redirectResult struct {
 		ging.ActionResult
-		url string
+		Url string
 	}
 )
 
@@ -35,10 +35,10 @@ func RedirectResult(context *gin.Context, args ...string) ging.IActionResult {
 	}
 
 	result := &redirectResult{
-		url: redirectUrl,
+		Url: redirectUrl,
 	}
 
-	result.context = context
+	result.Context = context
 	return result
 }
 
@@ -46,5 +46,5 @@ func RedirectResult(context *gin.Context, args ...string) ging.IActionResult {
  * 渲染
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (r *redirectResult) Render() {
-	r.Redirect(r.url)
+	r.Redirect(r.Url)
 }
