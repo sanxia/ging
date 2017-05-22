@@ -1,6 +1,12 @@
 package pongo
 
 import (
+	"crypto/md5"
+	"io"
+	"os"
+)
+
+import (
 	"github.com/flosch/pongo2"
 )
 
@@ -20,4 +26,21 @@ func Render(templateString string, data interface{}) (string, error) {
 	}
 
 	return result, err
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Md5哈希
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func Md5(data string) string {
+	m := md5.New()
+	io.WriteString(m, data)
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 判断文件是否存在
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func FileIsExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil || os.IsExist(err)
 }

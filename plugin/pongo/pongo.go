@@ -72,7 +72,7 @@ func New(options RenderOptions) *PongoRender {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (p PongoRender) Instance(templateName string, data interface{}) render.Render {
 	templateFilename, _ := filepath.Abs(path.Join(p.Options.TemplatePath, templateName))
-	tmplKey := util.Md5(templateFilename)
+	tmplKey := Md5(templateFilename)
 
 	log.Printf("tmpl instance tmplKey: %s, tmplName: %s", tmplKey, templateFilename)
 
@@ -182,14 +182,14 @@ func loadTemplate(templatePath string, options RenderOptions) {
 		}
 
 		if isMatched, _ := regexp.MatchString(".*"+extName+"$", templateFilePath); isMatched {
-			if isExists := util.FileIsExists(templateFilePath); !isExists {
+			if isExists := FileIsExists(templateFilePath); !isExists {
 				continue
 			}
 
 			if tmpl, err := pongo2.FromFile(templateFilePath); err != nil {
 				log.Fatalf("error:  \"%s\": %v", templateFilename, err)
 			} else {
-				tmplKey := util.Md5(templateFilename)
+				tmplKey := Md5(templateFilename)
 				log.Printf("load template: %s, %s", tmplKey, templateFilePath)
 				templateCache[tmplKey] = tmpl
 				founded = true

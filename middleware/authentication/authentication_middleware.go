@@ -59,18 +59,8 @@ func FormsAuthenticationMiddleware(extend FormsAuthenticationExtend) gin.Handler
 func customValidate(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *UserIdentity) bool {
 	//用户角色是否匹配
 	if len(formExtend.Role) > 0 {
-		isFounded := false
-		roles := util.StringToStringSlice(formExtend.Role)
-		currentRoles := util.StringToStringSlice(userIdentity.Role)
-		for _, role := range roles {
-			for _, currentRole := range currentRoles {
-				if currentRole == role {
-					isFounded = true
-					break
-				}
-			}
-		}
-		return isFounded
+		isInRole := util.IsInRole(userIdentity.Role, formExtend.Role)
+		return isInRole
 	}
 
 	return true

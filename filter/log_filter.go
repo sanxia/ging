@@ -22,23 +22,25 @@ type logFilter struct {
 }
 
 func LogFilter(args ...string) ging.IActionFilter {
-	name := "log"
-	if len(args) == 1 {
-		name = args[0]
-	}
 	return &logFilter{
 		Filter: Filter{
-			Name: name,
+			Name: "log_filter",
 		},
 	}
 }
 
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 动作执行之前
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *logFilter) Before(ctx *gin.Context) ging.IActionResult {
-	log.Printf("[filter: %s] Before %v", s.Name, time.Now())
+	log.Printf("[%s] Before %v", s.Name, time.Now())
 
 	return nil
 }
 
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 动作执行之后
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *logFilter) After(ctx *gin.Context) {
-	log.Printf("[filter: %s] After %v", s.Name, time.Now())
+	log.Printf("[%s] After %v", s.Name, time.Now())
 }

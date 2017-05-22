@@ -1,9 +1,6 @@
 package util
 
 import (
-	"crypto/md5"
-	"io"
-	"os"
 	"strings"
 )
 
@@ -11,6 +8,26 @@ import (
  * 帮助函数
  * author: 美丽的地球啊
  * ================================================================================ */
+
+func IsInRole(userRole, allowRole string) bool {
+	isInRole := false
+
+	if len(userRole) == 0 || len(allowRole) == 0 {
+		return false
+	}
+
+	roles := StringToStringSlice(allowRole)
+	currentRoles := StringToStringSlice(userRole)
+	for _, role := range roles {
+		for _, currentRole := range currentRoles {
+			if currentRole == role {
+				isInRole = true
+				break
+			}
+		}
+	}
+	return isInRole
+}
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 用指定的字符串分隔源字符串为字符串切片
@@ -35,21 +52,4 @@ func StringToStringSlice(sourceString string, args ...string) []string {
 	}
 
 	return result
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Md5哈希
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Md5(data string) string {
-	m := md5.New()
-	io.WriteString(m, data)
-	return hex.EncodeToString(m.Sum(nil))
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 判断文件是否存在
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func FileIsExists(filename string) bool {
-	_, err := os.Stat(filename)
-	return err == nil || os.IsExist(err)
 }
