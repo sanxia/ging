@@ -1,14 +1,11 @@
 package authentication
 
 import (
-	"time"
-)
-
-import (
 	"github.com/gin-gonic/gin"
 )
 
 import (
+	"github.com/sanxia/ging"
 	"github.com/sanxia/ging/result"
 	"github.com/sanxia/ging/util"
 )
@@ -32,7 +29,7 @@ func FormsAuthenticationMiddleware(extend FormsAuthenticationExtend) gin.Handler
 	var err error
 	forms, err = NewFormAuthentication(FormsAuthentication{
 		Extend: extend,
-		Validate: func(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *UserIdentity) bool {
+		Validate: func(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *ging.UserIdentity) bool {
 			return customValidate(ctx, formExtend, userIdentity)
 		},
 	})
@@ -40,9 +37,9 @@ func FormsAuthenticationMiddleware(extend FormsAuthenticationExtend) gin.Handler
 	if err != nil {
 		return func(ctx *gin.Context) {
 			errorResult := map[string]interface{}{
-				Code: 111,
-				Msg:  "参数错误",
-				Data: nil,
+				"Code": 111,
+				"Msg":  "参数错误",
+				"Data": nil,
 			}
 			viewResult := result.JsonResult(ctx, errorResult)
 			viewResult.Render()
@@ -58,7 +55,7 @@ func FormsAuthenticationMiddleware(extend FormsAuthenticationExtend) gin.Handler
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 自定义验证扩展点
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func customValidate(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *UserIdentity) bool {
+func customValidate(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *ging.UserIdentity) bool {
 	//用户角色是否匹配
 	if len(formExtend.Role) > 0 {
 		isInRole := util.IsInRole(userIdentity.Role, formExtend.Role)
@@ -73,8 +70,8 @@ func customValidate(ctx *gin.Context, formExtend FormsAuthenticationExtend, user
  * userModel: 用户数据模型
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Logon(ctx *gin.Context, userIdentity *UserIdentity) bool {
-	return forms.Logon(ctx, userIdentity, isPersistence)
+func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) bool {
+	return forms.Logon(ctx, userIdentity)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

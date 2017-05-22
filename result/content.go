@@ -39,16 +39,16 @@ func ContentResult(context *gin.Context, data interface{}, args ...interface{}) 
 	if argsCount == 1 {
 		switch value := args[0].(type) {
 		case int:
-			result.statusCode = value
+			result.StatusCode = value
 		case bool:
-			result.isAbort = value
+			result.IsAbort = value
 		}
 	} else if argsCount == 2 {
 		if statusCode, ok := args[0].(int); ok {
-			result.statusCode = statusCode
+			result.StatusCode = statusCode
 		}
 		if isAbort, ok := args[1].(bool); ok {
-			result.isAbort = isAbort
+			result.IsAbort = isAbort
 		}
 
 	}

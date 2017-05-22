@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
 import (
@@ -13,6 +12,7 @@ import (
 )
 
 import (
+	"github.com/sanxia/ging"
 	"github.com/sanxia/ging/result"
 )
 
@@ -23,7 +23,7 @@ import (
  * author  : 美丽的地球啊
  * ================================================================================ */
 type (
-	fnValidate          func(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *UserIdentity) bool
+	fnValidate          func(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *ging.UserIdentity) bool
 	FormsAuthentication struct {
 		Validate fnValidate
 		Extend   FormsAuthenticationExtend
@@ -85,7 +85,7 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 			return
 		} else {
 			//传递验证用户标识
-			ctx.Set(UserIdentityKey, *userIdentity)
+			ctx.Set(ging.UserIdentityKey, *userIdentity)
 			ctx.Next()
 		}
 	}
@@ -94,9 +94,9 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 解析用户标识
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) parseUserIdentity(ctx *gin.Context) (*UserIdentity, error) {
+func (forms *FormsAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.UserIdentity, error) {
 	//解析cookie
-	userIdentity := new(UserIdentity)
+	userIdentity := new(ging.UserIdentity)
 	if cookie, err := ctx.Request.Cookie(forms.Extend.Cookie.Name); err != nil {
 		return nil, err
 	} else if err := userIdentity.DecryptAES([]byte(forms.Extend.EncryptKey), cookie.Value); err != nil {
@@ -111,9 +111,9 @@ func (forms *FormsAuthentication) parseUserIdentity(ctx *gin.Context) (*UserIden
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
 	errorResult := map[string]interface{}{
-		Code: 299,
-		Msg:  "用户未认证",
-		Data: nil,
+		"Code": 299,
+		"Msg":  "用户未认证",
+		"Data": nil,
 	}
 	authUrl := forms.Extend.AuthenticationUrl
 	requestUrl := ctx.Request.URL.RequestURI()
@@ -134,7 +134,7 @@ func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
  * user: 用户域模型
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *UserIdentity) bool {
+func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) bool {
 	userIdentityTicket, err := userIdentity.EncryptAES([]byte(forms.Extend.EncryptKey))
 	if err != nil {
 		return false

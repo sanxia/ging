@@ -32,7 +32,7 @@ func DataResult(context *gin.Context, data interface{}, args ...interface{}) gin
 
 	result.Context = context
 	result.ContentData = data
-	result.DontentType = "image/png"
+	result.ContentType = "image/png"
 	result.StatusCode = 200
 
 	argsCount := len(args)
