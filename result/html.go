@@ -4,6 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+import (
+	"github.com/sanxia/ging"
+)
+
 /* ================================================================================
  * Html结果
  * author: 美丽的地球啊
@@ -14,7 +18,7 @@ import (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	htmlResult struct {
-		ActionResult
+		ging.ActionResult
 		tmpl string
 	}
 )
@@ -22,7 +26,7 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Html视图结果
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func HtmlResult(context *gin.Context, tmpl string, args ...interface{}) IActionResult {
+func HtmlResult(context *gin.Context, tmpl string, args ...interface{}) ging.IActionResult {
 	result := &htmlResult{
 		tmpl: tmpl,
 	}

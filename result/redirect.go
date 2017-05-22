@@ -4,6 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+import (
+	"github.com/sanxia/ging"
+)
+
 /* ================================================================================
  * Redirect结果
  * author: 美丽的地球啊
@@ -14,7 +18,7 @@ import (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	redirectResult struct {
-		ActionResult
+		ging.ActionResult
 		url string
 	}
 )
@@ -22,7 +26,7 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Redirect视图结果
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func RedirectResult(context *gin.Context, args ...string) IActionResult {
+func RedirectResult(context *gin.Context, args ...string) ging.IActionResult {
 	redirectUrl := "/"
 	if len(args) > 0 {
 		redirectUrl = args[0]

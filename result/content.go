@@ -4,6 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+import (
+	"github.com/sanxia/ging"
+)
+
 /* ================================================================================
  * Content结果
  * author: 美丽的地球啊
@@ -14,14 +18,14 @@ import (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	contentResult struct {
-		ActionResult
+		ging.ActionResult
 	}
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Content结果
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func ContentResult(context *gin.Context, data interface{}, args ...interface{}) IActionResult {
+func ContentResult(context *gin.Context, data interface{}, args ...interface{}) ging.IActionResult {
 	result := &contentResult{}
 
 	result.context = context

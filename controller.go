@@ -5,9 +5,7 @@ import (
 )
 
 import (
-	"github.com/sanxia/ging/filter"
 	"github.com/sanxia/ging/middleware/session"
-	"github.com/sanxia/ging/result"
 )
 
 /* ================================================================================
@@ -20,8 +18,8 @@ import (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	IController interface {
-		Action(action func(ctx *gin.Context) result.IActionResult, args ...interface{}) func(*gin.Context)
-		Filter(filters ...filter.IActionFilter) IController
+		Action(action func(ctx *gin.Context) IActionResult, args ...interface{}) func(*gin.Context)
+		Filter(filters ...IActionFilter) IController
 
 		GetSession(ctx *gin.Context) session.ISession
 		GetUserIdentity(ctx *gin.Context) *UserIdentity
@@ -33,29 +31,28 @@ type (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	Controller struct {
-		filters []filter.IActionFilter
+		filters []IActionFilter
 	}
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 控制器动作
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) Action(action func(ctx *gin.Context) result.IActionResult, args ...interface{}) func(*gin.Context) {
+func (ctrl *Controller) Action(action func(ctx *gin.Context) IActionResult, args ...interface{}) func(*gin.Context) {
 	return func(context *gin.Context) {
-		//当前动作是否启用过滤器
-		var actionFilters []filter.IActionFilter
-		var filterResult result.IActionResult
-		isEnabled := true
+		var actionFilters []IActionFilter
+		var filterResult IActionResult
 
+		isEnabled := true
 		argsCount := len(args)
 		if argsCount > 0 {
-			if value, ok := args[0].(bool); ok {
+			if value, isOk := args[0].(bool); isOk {
 				isEnabled = value
 			} else {
 				for _, actionFilter := range args {
-					if actionFilter, ok := actionFilter.(filter.IActionFilter); ok {
+					if actionFilter, isOk := actionFilter.(IActionFilter); isOk {
 						if len(actionFilters) == 0 {
-							actionFilters = make([]filter.IActionFilter, argsCount)
+							actionFilters = make([]IActionFilter, argsCount)
 						}
 						actionFilters = append(actionFilters, actionFilter)
 					}
@@ -65,6 +62,7 @@ func (ctrl *Controller) Action(action func(ctx *gin.Context) result.IActionResul
 
 		if isEnabled {
 			//动作执行之前的控制器动作过滤器
+			//Before返回非空IActionResult即终止
 			for _, filter := range ctrl.filters {
 				if filter != nil {
 					if filterResult = filter.Before(context); filterResult != nil {
@@ -114,13 +112,13 @@ func (ctrl *Controller) Action(action func(ctx *gin.Context) result.IActionResul
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置控制器过滤器（控制器的方法执行前后都会执行过滤器接口，过滤器接口集合不支持排序）
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) Filter(filters ...filter.IActionFilter) IController {
+func (ctrl *Controller) Filter(filters ...IActionFilter) IController {
 	if len(filters) == 0 {
 		return ctrl
 	}
 
 	if len(ctrl.filters) == 0 {
-		ctrl.filters = make([]filter.IActionFilter, 0)
+		ctrl.filters = make([]IActionFilter, 0)
 	}
 
 	for _, filter := range filters {
@@ -173,7 +171,7 @@ func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value strin
 	}
 
 	session := ctrl.GetSession(ctx)
-	if sessionValue, ok := session.Get(name).(string); ok {
+	if sessionValue, isOk := session.Get(name).(string); isOk {
 		if sessionValue != value {
 			isSuccess = false
 		}
@@ -181,7 +179,7 @@ func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value strin
 		isSuccess = false
 	}
 
-	//使用一次即销毁
+	//立即销毁
 	session.Delete(name)
 	session.Save()
 

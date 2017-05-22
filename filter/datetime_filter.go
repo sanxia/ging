@@ -11,7 +11,7 @@ import (
 )
 
 import (
-	"github.com/sanxia/ging/result"
+	"github.com/sanxia/ging"
 )
 
 /* ================================================================================
@@ -24,7 +24,7 @@ type datetimeFilter struct {
 	endDate   time.Time
 }
 
-func DatetimeFilter(args ...string) IActionFilter {
+func DatetimeFilter(args ...string) ging.IActionFilter {
 	name := "datetime"
 	if len(args) == 1 {
 		name = args[0]
@@ -36,7 +36,7 @@ func DatetimeFilter(args ...string) IActionFilter {
 	}
 }
 
-func (s *datetimeFilter) Before(ctx *gin.Context) result.IActionResult {
+func (s *datetimeFilter) Before(ctx *gin.Context) ging.IActionResult {
 	s.beginDate = time.Now()
 	log.Printf("[filter: %s] Before %v", s.Name, s.beginDate)
 

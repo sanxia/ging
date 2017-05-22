@@ -10,7 +10,7 @@ import (
 )
 
 import (
-	"github.com/sanxia/ging/result"
+	"github.com/sanxia/ging"
 )
 
 /* ================================================================================
@@ -21,7 +21,7 @@ type logFilter struct {
 	Filter
 }
 
-func LogFilter(args ...string) IActionFilter {
+func LogFilter(args ...string) ging.IActionFilter {
 	name := "log"
 	if len(args) == 1 {
 		name = args[0]
@@ -33,7 +33,7 @@ func LogFilter(args ...string) IActionFilter {
 	}
 }
 
-func (s *logFilter) Before(ctx *gin.Context) result.IActionResult {
+func (s *logFilter) Before(ctx *gin.Context) ging.IActionResult {
 	log.Printf("[filter: %s] Before %v", s.Name, time.Now())
 
 	return nil

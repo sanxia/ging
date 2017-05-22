@@ -29,21 +29,20 @@ type (
 
 	FormsAuthenticationExtend struct {
 		App               string                     //应用名称
-		Cookie            *FormsAuthenticationCookie //cookie
 		EncryptKey        string                     //加密key
 		Role              string                     //角色（多个之间用逗号分隔）
 		PassUrls          []string                   //直接通过的url
 		AuthenticationUrl string                     //认证url
+		Cookie            *FormsAuthenticationCookie //cookie
 		IsJson            bool                       //是否json响应数据
 		IsEnabled         bool                       //是否启用验证
 	}
 
 	FormsAuthenticationCookie struct {
-		Name    string
-		Path    string
-		Domain  string
-		Expires time.Time
-		MaxAge  int
+		Name   string
+		Path   string
+		Domain string
+		MaxAge int
 	}
 )
 
@@ -53,10 +52,6 @@ type (
 func NewFormAuthentication(forms FormsAuthentication) (*FormsAuthentication, error) {
 	if len(forms.Extend.EncryptKey) != 32 {
 		return nil, errors.New("表单认证Key长度必须是32bytes")
-	}
-
-	if !forms.Extend.Cookie.Expires.IsZero() {
-		forms.Extend.Cookie.MaxAge = int(forms.Extend.Cookie.Expires.Sub(time.Now()) / time.Second)
 	}
 
 	return &forms, nil
@@ -138,23 +133,18 @@ func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
  * user: 用户域模型
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *UserIdentity, isPersistence bool) bool {
+func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *UserIdentity) bool {
 	userIdentityTicket, err := userIdentity.EncryptAES([]byte(forms.Extend.EncryptKey))
 	if err != nil {
 		return false
 	}
 
-	maxAge := -1
-	if isPersistence {
-		maxAge = forms.Extend.Cookie.MaxAge
-	}
-
 	cookie := http.Cookie{
-		Name:   forms.Cookie.Name,
+		Name:   forms.Extend.Cookie.Name,
 		Value:  userIdentityTicket,
-		MaxAge: maxAge,
-		Path:   forms.Cookie.Path,
-		Domain: forms.Cookie.Domain,
+		MaxAge: forms.Extend.Cookie.MaxAge,
+		Path:   forms.Extend.Cookie.Path,
+		Domain: forms.Extend.Cookie.Domain,
 	}
 	http.SetCookie(ctx.Writer, &cookie)
 

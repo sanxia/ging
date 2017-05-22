@@ -26,9 +26,6 @@ var (
  * extend: 表单扩展数据
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func FormsAuthenticationMiddleware(extend FormsAuthenticationExtend) gin.HandlerFunc {
-	duration := time.Duration(extend.Cookie.MaxAge) * time.Second
-	extend.Cookie.Expires = time.Now().Add(duration)
-
 	//初始化表单验证
 	var err error
 	forms, err = NewFormAuthentication(FormsAuthentication{
@@ -84,7 +81,7 @@ func customValidate(ctx *gin.Context, formExtend FormsAuthenticationExtend, user
  * userModel: 用户数据模型
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Logon(ctx *gin.Context, userIdentity *UserIdentity, isPersistence bool) bool {
+func Logon(ctx *gin.Context, userIdentity *UserIdentity) bool {
 	return forms.Logon(ctx, userIdentity, isPersistence)
 }
 
