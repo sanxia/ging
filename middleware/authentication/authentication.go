@@ -18,9 +18,9 @@ import (
 
 /* ================================================================================
  * 表单认证模块
- * qq: 2091938785
- * email: 2091938785@qq.com
- * author: 美丽的地球啊
+ * qq group: 582452342
+ * email   : 2091938785@qq.com
+ * author  : 美丽的地球啊
  * ================================================================================ */
 type (
 	fnValidate          func(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *UserIdentity) bool

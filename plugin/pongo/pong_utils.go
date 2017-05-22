@@ -12,9 +12,9 @@ import (
 
 /* ================================================================================
  * Pongo模版引擎帮助模块
- * qq: 2091938785
- * email: 2091938785@qq.com
- * author: 美丽的地球啊
+ * qq group: 582452342
+ * email   : 2091938785@qq.com
+ * author  : 美丽的地球啊
  * ================================================================================ */
 func Render(templateString string, data interface{}) (string, error) {
 	tpl, err := pongo2.FromString(templateString)
