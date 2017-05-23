@@ -51,10 +51,17 @@ func init() {
  * 启动服务
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Start(serverOption *ServerOption, router IHttpRouter) {
-	fmt.Printf("%v ging Start\n", time.Now())
+	fmt.Printf("%v ging start\n", time.Now())
 	//Routines
 	for index, port := range serverOption.Ports {
-		addr := fmt.Sprintf("%s:%d", serverOption.Host, port)
+		host := "127.0.0.1"
+		if len(serverOption.Host) > 0 {
+			host = serverOption.Host
+		}
+		if port == 0 {
+			port = 80
+		}
+		addr := fmt.Sprintf("%s:%d", host, port)
 
 		//Http服务
 		go startServe(index, addr, router)
@@ -64,7 +71,7 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
 	for server := range serverStatus.Status {
 		index++
 
-		info := fmt.Sprintf("%v ging Server %02d on %s Success", server.Now, server.Index, server.Addr)
+		info := fmt.Sprintf("%v ging server %02d on %s Success", server.Now, server.Index, server.Addr)
 		log.Println(info)
 
 		if index == len(serverOption.Ports) {
@@ -73,7 +80,7 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
 	}
 
 	for true {
-		pending := fmt.Sprintf("%v ging Serve Running ...", time.Now())
+		pending := fmt.Sprintf("%v ging server Running ...", time.Now())
 		log.Println(pending)
 		time.Sleep(60 * time.Minute)
 	}
