@@ -16,10 +16,6 @@ import (
 	"github.com/gin-gonic/gin/render"
 )
 
-import (
-	"github.com/sanxia/ging/util"
-)
-
 /* ================================================================================
  * Pongo模版引擎模块
  * qq group: 582452342
@@ -48,10 +44,14 @@ var (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取Pongo模版渲染引擎
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRender() *PongoRender {
+func NewRender(args ...string) *PongoRender {
+	templatePath := "./templates"
+	if len(args) > 0 {
+		templatePath = args[0]
+	}
 	return New(RenderOptions{
-		TemplatePath: "",
-		Extensions:   []string{},
+		TemplatePath: templatePath,
+		Extensions:   []string{".tpl", ".tmpl"},
 		ContentType:  "text/html; charset=utf-8",
 	})
 }
@@ -147,6 +147,8 @@ func compileTemplates() {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func getTemplateFilenames(templateRoot string, extNames []string) []string {
 	templateRoot, _ = filepath.Abs(templateRoot)
+	log.Printf("getTemplateFilenames templateRoot %s\n", templateRoot)
+
 	filenames := make([]string, 0)
 	err := filepath.Walk(templateRoot, func(fullFilePath string, fileInfo os.FileInfo, err error) error {
 		filename := path.Base(fileInfo.Name())

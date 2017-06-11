@@ -2,6 +2,7 @@ package pongo
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"os"
 )

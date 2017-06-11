@@ -3,10 +3,7 @@ package ging
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
-)
-
-import (
-//"github.com/plugin/pongo"
+	"github.com/sanxia/ging/plugin/pongo"
 )
 
 const (
@@ -37,7 +34,7 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 实例化HttpEngine
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewHttpEngine(args ...string) IHttpEngine {
+func NewHttpEngine(templatePath string, args ...string) IHttpEngine {
 	switch args[0] {
 	case "debug":
 		gin.SetMode(gin.DebugMode)
@@ -47,19 +44,19 @@ func NewHttpEngine(args ...string) IHttpEngine {
 		gin.SetMode(gin.TestMode)
 	}
 
-	//创建httpEngine
+	//初始化httpEngine
 	httpEngine := &httpEngine{
 		engine: gin.New(),
 	}
 
-	//注册默认中间件
+	//注册中间件
 	httpEngine.Middleware(
 		gin.Logger(),
 		gin.Recovery(),
 	)
 
-	//注册Pongo渲染引擎
-	//httpEngine.Render(pongo.NewRender())
+	//注册渲染引擎
+	httpEngine.Render(pongo.NewRender(templatePath))
 
 	return httpEngine
 }
