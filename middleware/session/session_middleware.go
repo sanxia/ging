@@ -29,16 +29,17 @@ type SessionOption struct {
 }
 
 type SessionCookieOption struct {
-	Path   string
-	Domain string
-	MaxAge int
+	Path     string
+	Domain   string
+	MaxAge   int
+	HttpOnly bool
 }
 
 type SessionRedisOption struct {
 	Host      string
 	Port      int
 	Password  string
-	KeyPrefix string
+	PrefixKey string
 }
 
 func SessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
@@ -54,9 +55,10 @@ func SessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func CookieStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
 	options := Options{
-		Path:   sessionOption.Cookie.Path,
-		Domain: sessionOption.Cookie.Domain,
-		MaxAge: sessionOption.Cookie.MaxAge,
+		Path:     sessionOption.Cookie.Path,
+		Domain:   sessionOption.Cookie.Domain,
+		MaxAge:   sessionOption.Cookie.MaxAge,
+		HttpOnly: sessionOption.Cookie.HttpOnly,
 	}
 
 	store := NewCookieStore([]byte(sessionOption.EncryptKey))
@@ -79,7 +81,7 @@ func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
 		sessionOption.Redis.Host,
 		sessionOption.Redis.Port,
 		sessionOption.Redis.Password,
-		sessionOption.Redis.KeyPrefix,
+		sessionOption.Redis.PrefixKey,
 		[]byte(sessionOption.EncryptKey),
 	)
 	store.Options(options)

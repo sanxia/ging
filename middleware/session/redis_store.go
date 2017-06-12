@@ -26,15 +26,15 @@ type redisStore struct {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取Redis存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRedisStore(ip string, port int, password, keyPrefix string, keyPairs ...[]byte) IRedisStore {
+func NewRedisStore(ip string, port int, password, prefixKey string, keyPairs ...[]byte) IRedisStore {
 	redisIp := fmt.Sprintf("%s:%d", ip, port)
 	s, err := NewRediStore(10, "tcp", redisIp, password, keyPairs...)
 	if err != nil {
 		panic(fmt.Sprintf("connect redis error: %v", err))
 	}
 
-	if len(keyPrefix) > 0 {
-		s.SetKeyPrefix(keyPrefix)
+	if len(prefixKey) > 0 {
+		s.SetKeyPrefix(prefixKey)
 	}
 
 	return &redisStore{s}
