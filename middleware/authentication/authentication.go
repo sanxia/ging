@@ -134,8 +134,8 @@ func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
  * user: 用户域模型
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) bool {
-	userIdentityTicket, err := userIdentity.EncryptAES([]byte(forms.Extend.EncryptKey))
+func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
+	ticket, err := userIdentity.EncryptAES([]byte(forms.Extend.EncryptKey))
 	if err != nil {
 		return false
 	}
@@ -147,11 +147,18 @@ func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.Use
 
 	cookie := http.Cookie{
 		Name:   forms.Extend.Cookie.Name,
-		Value:  userIdentityTicket,
-		MaxAge: forms.Extend.Cookie.MaxAge,
+		Value:  ticket,
 		Path:   path,
 		Domain: forms.Extend.Cookie.Domain,
 	}
+
+	if isRemember {
+		cookie.MaxAge = forms.Extend.Cookie.MaxAge
+	} else {
+		//关闭浏览器即实效
+		cookie.MaxAge = -1
+	}
+
 	http.SetCookie(ctx.Writer, &cookie)
 
 	return true
@@ -166,13 +173,15 @@ func (forms *FormsAuthentication) Logoff(ctx *gin.Context) bool {
 		path = forms.Extend.Cookie.Path
 	}
 
+	//删除cookie
 	cookie := http.Cookie{
 		Name:   forms.Extend.Cookie.Name,
-		Value:  "_",
+		Value:  "",
 		MaxAge: 0,
 		Path:   path,
 		Domain: forms.Extend.Cookie.Domain,
 	}
 	http.SetCookie(ctx.Writer, &cookie)
+
 	return true
 }
