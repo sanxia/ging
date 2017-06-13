@@ -24,12 +24,12 @@ var (
  * 登陆
  * extend: 表单扩展数据
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func FormsAuthenticationMiddleware(extend FormsAuthenticationExtend) gin.HandlerFunc {
+func FormsAuthenticationMiddleware(extend FormsExtend) gin.HandlerFunc {
 	//初始化表单验证
 	var err error
 	forms, err = NewFormAuthentication(FormsAuthentication{
 		Extend: extend,
-		Validate: func(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *ging.UserIdentity) bool {
+		Validate: func(ctx *gin.Context, formExtend FormsExtend, userIdentity *ging.UserIdentity) bool {
 			return customValidate(ctx, formExtend, userIdentity)
 		},
 	})
@@ -55,7 +55,7 @@ func FormsAuthenticationMiddleware(extend FormsAuthenticationExtend) gin.Handler
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 自定义验证扩展点
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func customValidate(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *ging.UserIdentity) bool {
+func customValidate(ctx *gin.Context, formExtend FormsExtend, userIdentity *ging.UserIdentity) bool {
 	//用户角色是否匹配
 	if len(formExtend.Role) > 0 {
 		isInRole := util.IsInRole(userIdentity.Role, formExtend.Role)

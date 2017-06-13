@@ -23,23 +23,23 @@ import (
  * author  : 美丽的地球啊
  * ================================================================================ */
 type (
-	fnValidate          func(ctx *gin.Context, formExtend FormsAuthenticationExtend, userIdentity *ging.UserIdentity) bool
+	fnValidate          func(ctx *gin.Context, formExtend FormsExtend, userIdentity *ging.UserIdentity) bool
 	FormsAuthentication struct {
 		Validate fnValidate
-		Extend   FormsAuthenticationExtend
+		Extend   FormsExtend
 	}
 
-	FormsAuthenticationExtend struct {
-		EncryptKey        string                     //加密key
-		Role              string                     //角色（多个之间用逗号分隔）
-		PassUrls          []string                   //直接通过的url
-		AuthenticationUrl string                     //认证url
-		Cookie            *FormsAuthenticationCookie //cookie
-		IsJson            bool                       //是否json响应数据
-		IsEnabled         bool                       //是否启用验证
+	FormsExtend struct {
+		Cookie     *FormsCookie //cookie
+		Role       string       //角色（多个之间用逗号分隔）
+		LogonUrl   string       //认证url
+		PassUrls   []string     //直接通过的url
+		EncryptKey string       //加密key
+		IsJson     bool         //是否json响应数据
+		IsEnabled  bool         //是否启用验证
 	}
 
-	FormsAuthenticationCookie struct {
+	FormsCookie struct {
 		Name   string
 		Path   string
 		Domain string
@@ -64,7 +64,7 @@ func NewFormAuthentication(forms FormsAuthentication) (*FormsAuthentication, err
 func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		//允许指定模式的Url跳过验证
-		isPass := strings.HasPrefix(ctx.Request.URL.Path, forms.Extend.AuthenticationUrl)
+		isPass := strings.HasPrefix(ctx.Request.URL.Path, forms.Extend.LogonUrl)
 		if !isPass {
 			for _, passUrl := range forms.Extend.PassUrls {
 				isPass = strings.HasPrefix(ctx.Request.URL.Path, passUrl)
@@ -115,15 +115,15 @@ func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
 		"Msg":  "用户未认证",
 		"Data": nil,
 	}
-	authUrl := forms.Extend.AuthenticationUrl
+	logonUrl := forms.Extend.LogonUrl
 	requestUrl := ctx.Request.URL.RequestURI()
 
 	//认证失败的处理
 	if forms.Extend.IsJson {
 		result.JsonResult(ctx, errorResult).Render()
 	} else {
-		authUrl += "?returnurl=" + url.QueryEscape(requestUrl)
-		result.RedirectResult(ctx, authUrl).Render()
+		logonUrl += "?returnurl=" + url.QueryEscape(requestUrl)
+		result.RedirectResult(ctx, logonUrl).Render()
 	}
 	ctx.Abort()
 	return
@@ -155,8 +155,8 @@ func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.Use
 	if isRemember {
 		cookie.MaxAge = forms.Extend.Cookie.MaxAge
 	} else {
-		//关闭浏览器即实效
-		cookie.MaxAge = -1
+		//关闭浏览器即失效
+		cookie.MaxAge = 0
 	}
 
 	http.SetCookie(ctx.Writer, &cookie)
@@ -177,7 +177,7 @@ func (forms *FormsAuthentication) Logoff(ctx *gin.Context) bool {
 	cookie := http.Cookie{
 		Name:   forms.Extend.Cookie.Name,
 		Value:  "",
-		MaxAge: 0,
+		MaxAge: -1,
 		Path:   path,
 		Domain: forms.Extend.Cookie.Domain,
 	}
