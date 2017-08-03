@@ -22,9 +22,11 @@ const (
 )
 
 type UserIdentity struct {
-	UserId   uint64
-	Nickname string
-	Role     string
+	UserId          uint64 //用户id
+	Nickname        string //用户昵称
+	AvatarUrl       string //用户图像
+	Role            string //角色名（多个之间用逗号分隔）
+	IsAuthenticated bool   //是否已验证
 }
 
 func (c *UserIdentity) Serialize() ([]byte, error) {

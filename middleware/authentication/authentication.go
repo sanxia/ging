@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -35,7 +36,7 @@ type (
 		LogonUrl   string       //认证url
 		PassUrls   []string     //直接通过的url
 		EncryptKey string       //加密key
-		IsJson     bool         //是否json响应数据
+		IsJson     bool         //是否json响应
 		IsEnabled  bool         //是否启用验证
 	}
 
@@ -62,6 +63,10 @@ func NewFormAuthentication(forms FormsAuthentication) (*FormsAuthentication, err
  * 身份验证
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
+	currentUserIdentity := ging.UserIdentity{
+		IsAuthenticated: false,
+	}
+
 	return func(ctx *gin.Context) {
 		//允许指定模式的Url跳过验证
 		isPass := strings.HasPrefix(ctx.Request.URL.Path, forms.Extend.LogonUrl)
@@ -74,19 +79,43 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 			}
 		}
 
+		//如果没有启用登陆或跳过url
 		if !forms.Extend.IsEnabled || isPass {
+			log.Println("authentication url pass")
+			if isPass {
+				if userIdentity, err := forms.parseUserIdentity(ctx); err == nil {
+					currentUserIdentity = *userIdentity
+					if userIdentity.UserId > 0 {
+						currentUserIdentity.IsAuthenticated = true
+					}
+				}
+			}
+			ctx.Set(ging.UserIdentityKey, currentUserIdentity)
 			ctx.Next()
-			return
-		} else if userIdentity, err := forms.parseUserIdentity(ctx); err != nil {
-			forms.errorHandler(ctx)
-			return
-		} else if isSuccess := forms.Validate(ctx, forms.Extend, userIdentity); !isSuccess {
-			forms.errorHandler(ctx)
 			return
 		} else {
-			//传递验证用户标识
-			ctx.Set(ging.UserIdentityKey, *userIdentity)
-			ctx.Next()
+			log.Println("authentication parseUserIdentity")
+			if userIdentity, err := forms.parseUserIdentity(ctx); err != nil {
+				log.Printf("authentication parseUserIdentity error: %v", err)
+				forms.errorHandler(ctx)
+				ctx.Set(ging.UserIdentityKey, currentUserIdentity)
+				return
+			} else {
+				log.Printf("authentication userIdentity.IsAuthenticated: %v", userIdentity.IsAuthenticated)
+				if !userIdentity.IsAuthenticated {
+					isSuccess := forms.Validate(ctx, forms.Extend, userIdentity)
+					log.Printf("authentication Validate isSuccess %v", isSuccess)
+					if !isSuccess {
+						forms.errorHandler(ctx)
+						return
+					}
+				}
+
+				//传递验证用户标识
+				log.Printf("authentication Set UserIdentityKey: %v", userIdentity)
+				ctx.Set(ging.UserIdentityKey, *userIdentity)
+				ctx.Next()
+			}
 		}
 	}
 }
@@ -131,10 +160,11 @@ func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登陆
- * user: 用户域模型
- * isPersistence: 是否持久化登陆信息
+ * userIdentity: 用户标示符域模型
+ * isRemember: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
+	userIdentity.IsAuthenticated = true
 	ticket, err := userIdentity.EncryptAES([]byte(forms.Extend.EncryptKey))
 	if err != nil {
 		return false
