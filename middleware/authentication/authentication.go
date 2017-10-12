@@ -41,10 +41,11 @@ type (
 	}
 
 	FormsCookie struct {
-		Name   string
-		Path   string
-		Domain string
-		MaxAge int
+		Name     string
+		Path     string
+		Domain   string
+		MaxAge   int
+		HttpOnly bool
 	}
 )
 
@@ -85,6 +86,7 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 			if isPass {
 				if userIdentity, err := forms.parseUserIdentity(ctx); err == nil {
 					currentUserIdentity = *userIdentity
+					log.Println("authentication url pass currentUserIdentity: %v", currentUserIdentity)
 					if userIdentity.UserId > 0 {
 						currentUserIdentity.IsAuthenticated = true
 					}
@@ -94,14 +96,13 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 			ctx.Next()
 			return
 		} else {
-			log.Println("authentication parseUserIdentity")
 			if userIdentity, err := forms.parseUserIdentity(ctx); err != nil {
 				log.Printf("authentication parseUserIdentity error: %v", err)
 				forms.errorHandler(ctx)
 				ctx.Set(ging.UserIdentityKey, currentUserIdentity)
 				return
 			} else {
-				log.Printf("authentication userIdentity.IsAuthenticated: %v", userIdentity.IsAuthenticated)
+				log.Printf("authentication userIdentity: %v", userIdentity)
 				if !userIdentity.IsAuthenticated {
 					isSuccess := forms.Validate(ctx, forms.Extend, userIdentity)
 					log.Printf("authentication Validate isSuccess %v", isSuccess)
@@ -176,10 +177,11 @@ func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.Use
 	}
 
 	cookie := http.Cookie{
-		Name:   forms.Extend.Cookie.Name,
-		Value:  ticket,
-		Path:   path,
-		Domain: forms.Extend.Cookie.Domain,
+		Name:     forms.Extend.Cookie.Name,
+		Value:    ticket,
+		Path:     path,
+		Domain:   forms.Extend.Cookie.Domain,
+		HttpOnly: forms.Extend.Cookie.HttpOnly,
 	}
 
 	if isRemember {

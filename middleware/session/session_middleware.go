@@ -72,9 +72,10 @@ func CookieStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc 
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
 	options := Options{
-		Path:   sessionOption.Cookie.Path,
-		Domain: sessionOption.Cookie.Domain,
-		MaxAge: sessionOption.Cookie.MaxAge,
+		Path:     sessionOption.Cookie.Path,
+		Domain:   sessionOption.Cookie.Domain,
+		MaxAge:   sessionOption.Cookie.MaxAge,
+		HttpOnly: sessionOption.Cookie.HttpOnly,
 	}
 
 	store := NewRedisStore(
