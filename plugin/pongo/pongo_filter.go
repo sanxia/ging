@@ -17,6 +17,10 @@ import (
 	"github.com/russross/blackfriday"
 )
 
+import (
+	"github.com/sanxia/glib"
+)
+
 /* ================================================================================
  * Pongo模版引擎过滤器模块
  * qq group: 582452342
@@ -28,6 +32,13 @@ import (
  * 注册模版过滤器
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func init() {
+	//custom
+	pongo2.RegisterFilter("sxhtmlencode", filterHtmlEncode)
+	pongo2.RegisterFilter("sxhtml", filterHtmlDecode)
+	pongo2.RegisterFilter("sxbr", filterLine2Br)
+	pongo2.RegisterFilter("sxthumb", filterThumbImage)
+	pongo2.RegisterFilter("sxdomain", filterUserDomain)
+
 	// Regulars
 	pongo2.RegisterFilter("slugify", filterSlugify)
 	pongo2.RegisterFilter("filesizeformat", filterFilesizeformat)
@@ -47,6 +58,74 @@ func init() {
 
 	pongo2.RegisterFilter("local_time", ToLocalTime)
 	pongo2.RegisterFilter("location_time", ToLocationTime)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * html 编码
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterHtmlEncode(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	newString := glib.HtmlEncode(in.String())
+	return pongo2.AsSafeValue(newString), nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * html 解码
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterHtmlDecode(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	newString := glib.HtmlDecode(in.String())
+	return pongo2.AsSafeValue(newString), nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * \r\n 和 \n 专程 html br标签
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterLine2Br(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	newString := glib.String2Br(in.String())
+	return pongo2.AsSafeValue(newString), nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 缩略图地址处理
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterThumbImage(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	sourceString := in.String()
+	if sourceString == "" || !strings.Contains(sourceString, "img.woshiyiren.com") {
+		return pongo2.AsSafeValue(sourceString), nil
+	}
+
+	//大小映射
+	sizeMap := map[string]string{
+		"5050":   "50x50",
+		"75100":  "75x100",
+		"100100": "100x100",
+		"150150": "150x150",
+		"200200": "200x200",
+		"300400": "300x400",
+	}
+
+	size := param.String()
+	sizeValue := "50x50"
+	if value, ok := sizeMap[size]; ok {
+		sizeValue = value
+	}
+
+	newString := sourceString + "_" + sizeValue + ".jpg"
+
+	return pongo2.AsSafeValue(newString), nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 用户域名处理
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterUserDomain(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	username := in.String()
+	if username == "" {
+		return pongo2.AsSafeValue(username), nil
+	}
+
+	domain := "http://www.woshiyiren.com/" + username
+
+	return pongo2.AsSafeValue(domain), nil
 }
 
 func filterMarkdown(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
@@ -202,6 +281,7 @@ func filterTruncatesentencesHtml(in *pongo2.Value, param *pongo2.Value) (*pongo2
 	}, func() {})
 	return pongo2.AsSafeValue(new_output.String()), nil
 }
+
 func filterTimeuntilTimesince(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	basetime, is_time := in.Interface().(time.Time)
 	if !is_time {

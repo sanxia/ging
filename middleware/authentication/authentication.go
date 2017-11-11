@@ -65,6 +65,7 @@ func NewFormAuthentication(forms FormsAuthentication) (*FormsAuthentication, err
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 	currentUserIdentity := ging.UserIdentity{
+		UserId:          0,
 		IsAuthenticated: false,
 	}
 
@@ -90,6 +91,9 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 					if userIdentity.UserId > 0 {
 						currentUserIdentity.IsAuthenticated = true
 					}
+				} else {
+					currentUserIdentity.UserId = 0
+					currentUserIdentity.IsAuthenticated = false
 				}
 			}
 			ctx.Set(ging.UserIdentityKey, currentUserIdentity)

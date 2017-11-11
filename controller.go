@@ -1,7 +1,7 @@
 package ging
 
 import (
-	"log"
+//"log"
 )
 
 import (
@@ -151,7 +151,7 @@ func (ctrl *Controller) GetUserIdentity(ctx *gin.Context) *UserIdentity {
  * 获取会话对象
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) GetSession(ctx *gin.Context) session.ISession {
-	log.Printf("ctrl GetSession: sid: %s, values: %v", session.Get(ctx).SessionId(), session.Get(ctx).Values())
+	//log.Printf("ctrl GetSession: sid: %s, values: %v", session.Get(ctx).SessionId(), session.Get(ctx).Values())
 
 	return session.Get(ctx)
 }

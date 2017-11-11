@@ -32,6 +32,7 @@ type SessionCookieOption struct {
 	Path     string
 	Domain   string
 	MaxAge   int
+	Secure   bool
 	HttpOnly bool
 }
 
@@ -54,14 +55,16 @@ func SessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
  * Cookie 存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func CookieStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
+	store := NewCookieStore([]byte(sessionOption.EncryptKey))
+
+	//session id 的cookie存储属性设置
 	options := Options{
 		Path:     sessionOption.Cookie.Path,
 		Domain:   sessionOption.Cookie.Domain,
 		MaxAge:   sessionOption.Cookie.MaxAge,
+		Secure:   sessionOption.Cookie.Secure,
 		HttpOnly: sessionOption.Cookie.HttpOnly,
 	}
-
-	store := NewCookieStore([]byte(sessionOption.EncryptKey))
 	store.Options(options)
 
 	return StoreSessionMiddleware(sessionOption.Name, store)
@@ -71,13 +74,6 @@ func CookieStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc 
  * Redis 存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
-	options := Options{
-		Path:     sessionOption.Cookie.Path,
-		Domain:   sessionOption.Cookie.Domain,
-		MaxAge:   sessionOption.Cookie.MaxAge,
-		HttpOnly: sessionOption.Cookie.HttpOnly,
-	}
-
 	store := NewRedisStore(
 		sessionOption.Redis.Host,
 		sessionOption.Redis.Port,
@@ -85,6 +81,15 @@ func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
 		sessionOption.Redis.PrefixKey,
 		[]byte(sessionOption.EncryptKey),
 	)
+
+	//session id 的cookie存储属性设置
+	options := Options{
+		Path:     sessionOption.Cookie.Path,
+		Domain:   sessionOption.Cookie.Domain,
+		MaxAge:   sessionOption.Cookie.MaxAge,
+		Secure:   sessionOption.Cookie.Secure,
+		HttpOnly: sessionOption.Cookie.HttpOnly,
+	}
 	store.Options(options)
 
 	return StoreSessionMiddleware(sessionOption.Name, store)

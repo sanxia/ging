@@ -82,7 +82,7 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
 	for true {
 		pending := fmt.Sprintf("%v ging server Running ...", time.Now())
 		log.Println(pending)
-		time.Sleep(60 * time.Minute)
+		time.Sleep(12 * time.Hour)
 	}
 }
 
