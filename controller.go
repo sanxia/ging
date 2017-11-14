@@ -169,8 +169,9 @@ func (ctrl *Controller) SaveSessionValue(ctx *gin.Context, name, value interface
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 校验会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value string) bool {
+func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value string, args ...bool) bool {
 	isSuccess := true
+	isRemove := true
 
 	if len(name) == 0 || len(value) == 0 {
 		isSuccess := false
@@ -186,9 +187,28 @@ func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value strin
 		isSuccess = false
 	}
 
-	//立即销毁
-	session.Delete(name)
-	session.Save()
+	//判断是否立即销毁会话数据
+	if len(args) > 0 {
+		isRemove = args[0]
+	}
+	if isRemove {
+		session.Delete(name)
+		session.Save()
+	} else {
+		if isSuccess {
+			session.Delete(name)
+			session.Save()
+		}
+	}
 
 	return isSuccess
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 移除会话值
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) RemoveSessionValue(ctx *gin.Context, name string) {
+	session := ctrl.GetSession(ctx)
+	session.Delete(name)
+	session.Save()
 }

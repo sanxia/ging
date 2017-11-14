@@ -23,36 +23,59 @@ const (
 
 type UserIdentity struct {
 	UserId          uint64 //用户id
+	Username        string //用户名
 	Nickname        string //用户昵称
 	Avatar          string //用户图像
 	Role            string //角色名（多个之间用逗号分隔）
 	IsAuthenticated bool   //是否已验证
 }
 
-func (c *UserIdentity) Serialize() ([]byte, error) {
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 输出字典数据
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *UserIdentity) Dump() map[string]interface{} {
+	data := make(map[string]interface{}, 0)
+	data["id"] = s.UserId
+	data["username"] = s.Username
+	data["nickname"] = s.Nickname
+	data["avatar"] = s.Avatar
+
+	return data
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * gob序列化
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *UserIdentity) Serialize() ([]byte, error) {
 	var b bytes.Buffer
 	e := gob.NewEncoder(&b)
-	if err := e.Encode(c); err != nil {
+	if err := e.Encode(s); err != nil {
 		return nil, err
 	}
 
 	return b.Bytes(), nil
 }
 
-func (c *UserIdentity) Deserialize(by []byte) error {
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * gob反序列化
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *UserIdentity) Deserialize(by []byte) error {
 	var b bytes.Buffer
 	b.Write(by)
 	d := gob.NewDecoder(&b)
-	err := d.Decode(&c)
+	err := d.Decode(&s)
 	return err
 }
 
-func (c *UserIdentity) EncryptAES(key []byte) (string, error) {
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * aes加密
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *UserIdentity) EncryptAES(key []byte) (string, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
-	text, err := c.Serialize()
+	text, err := s.Serialize()
 	if err != nil {
 		return "", err
 	}
@@ -68,7 +91,10 @@ func (c *UserIdentity) EncryptAES(key []byte) (string, error) {
 	return base64.URLEncoding.EncodeToString(ciphertext), nil
 }
 
-func (c *UserIdentity) DecryptAES(key []byte, input string) error {
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * aes解密
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *UserIdentity) DecryptAES(key []byte, input string) error {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return err
@@ -89,5 +115,5 @@ func (c *UserIdentity) DecryptAES(key []byte, input string) error {
 		return err
 	}
 
-	return c.Deserialize(data)
+	return s.Deserialize(data)
 }

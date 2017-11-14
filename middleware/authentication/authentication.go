@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -15,6 +14,7 @@ import (
 import (
 	"github.com/sanxia/ging"
 	"github.com/sanxia/ging/result"
+	"github.com/sanxia/glib"
 )
 
 /* ================================================================================
@@ -156,7 +156,7 @@ func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
 	if forms.Extend.IsJson {
 		result.JsonResult(ctx, errorResult).Render()
 	} else {
-		logonUrl += "?returnurl=" + url.QueryEscape(requestUrl)
+		logonUrl += "?returnurl=" + glib.UrlEncode(requestUrl)
 		result.RedirectResult(ctx, logonUrl).Render()
 	}
 	ctx.Abort()
@@ -191,7 +191,6 @@ func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.Use
 	if isRemember {
 		cookie.MaxAge = forms.Extend.Cookie.MaxAge
 	} else {
-		//关闭浏览器即失效
 		cookie.MaxAge = 0
 	}
 
