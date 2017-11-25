@@ -77,7 +77,7 @@ func filterHtmlDecode(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *po
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * \r\n 和 \n 专程 html br标签
+ * \r\n 和 \n 转 html br标签
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func filterLine2Br(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	newString := glib.String2Br(in.String())

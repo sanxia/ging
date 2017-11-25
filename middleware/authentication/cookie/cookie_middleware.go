@@ -1,4 +1,4 @@
-package authentication
+package cookie
 
 import (
 	"github.com/gin-gonic/gin"
@@ -17,20 +17,20 @@ import (
  * author  : 美丽的地球啊
  * ================================================================================ */
 var (
-	forms *FormsAuthentication
+	cookieAuth *CookieAuthentication
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登陆
+ * Cookie认证中间件
  * extend: 表单扩展数据
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func FormsAuthenticationMiddleware(extend FormsExtend) gin.HandlerFunc {
+func CookieAuthenticationMiddleware(extend CookieExtend) gin.HandlerFunc {
 	//初始化表单验证
 	var err error
-	forms, err = NewFormAuthentication(FormsAuthentication{
+	cookieAuth, err = NewCookieAuthentication(CookieAuthentication{
 		Extend: extend,
-		Validate: func(ctx *gin.Context, formExtend FormsExtend, userIdentity *ging.UserIdentity) bool {
-			return customValidate(ctx, formExtend, userIdentity)
+		Validate: func(ctx *gin.Context, extend CookieExtend, userIdentity *ging.UserIdentity) bool {
+			return customValidate(ctx, extend, userIdentity)
 		},
 	})
 
@@ -49,16 +49,16 @@ func FormsAuthenticationMiddleware(extend FormsExtend) gin.HandlerFunc {
 	}
 
 	//身份验证
-	return forms.Validation()
+	return cookieAuth.Validation()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 自定义验证扩展点
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func customValidate(ctx *gin.Context, formExtend FormsExtend, userIdentity *ging.UserIdentity) bool {
+func customValidate(ctx *gin.Context, extend CookieExtend, userIdentity *ging.UserIdentity) bool {
 	//用户角色是否匹配
-	if len(formExtend.Role) > 0 {
-		isInRole := util.IsInRole(userIdentity.Role, formExtend.Role)
+	if len(extend.Role) > 0 {
+		isInRole := util.IsInRole(userIdentity.Role, extend.Role)
 		return isInRole
 	}
 
@@ -71,12 +71,12 @@ func customValidate(ctx *gin.Context, formExtend FormsExtend, userIdentity *ging
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
-	return forms.Logon(ctx, userIdentity, isRemember)
+	return cookieAuth.Logon(ctx, userIdentity, isRemember)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Logoff(ctx *gin.Context) bool {
-	return forms.Logoff(ctx)
+	return cookieAuth.Logoff(ctx)
 }

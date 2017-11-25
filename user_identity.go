@@ -27,6 +27,7 @@ type UserIdentity struct {
 	Nickname        string //用户昵称
 	Avatar          string //用户图像
 	Role            string //角色名（多个之间用逗号分隔）
+	Expires         int64  //过期时间（距离1970-1-1的秒数）
 	IsAuthenticated bool   //是否已验证
 }
 

@@ -1,4 +1,4 @@
-package authentication
+package cookie
 
 import (
 	"errors"
@@ -18,29 +18,29 @@ import (
 )
 
 /* ================================================================================
- * 表单认证模块
+ * Cookie认证模块
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊
  * ================================================================================ */
 type (
-	fnValidate          func(ctx *gin.Context, formExtend FormsExtend, userIdentity *ging.UserIdentity) bool
-	FormsAuthentication struct {
+	fnValidate           func(ctx *gin.Context, extend CookieExtend, userIdentity *ging.UserIdentity) bool
+	CookieAuthentication struct {
 		Validate fnValidate
-		Extend   FormsExtend
+		Extend   CookieExtend
 	}
 
-	FormsExtend struct {
-		Cookie     *FormsCookie //cookie
-		Role       string       //角色（多个之间用逗号分隔）
-		LogonUrl   string       //认证url
-		PassUrls   []string     //直接通过的url
-		EncryptKey string       //加密key
-		IsJson     bool         //是否json响应
-		IsEnabled  bool         //是否启用验证
+	CookieExtend struct {
+		Option     *CookieOption //forms cookie
+		Role       string        //角色（多个之间用逗号分隔）
+		LogonUrl   string        //认证url
+		PassUrls   []string      //直接通过的url
+		EncryptKey string        //加密key
+		IsJson     bool          //是否json响应
+		IsEnabled  bool          //是否启用验证
 	}
 
-	FormsCookie struct {
+	CookieOption struct {
 		Name     string
 		Path     string
 		Domain   string
@@ -50,20 +50,20 @@ type (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 创建新的表单验证实例
+ * 创建新的Cookie验证实例
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewFormAuthentication(forms FormsAuthentication) (*FormsAuthentication, error) {
-	if len(forms.Extend.EncryptKey) != 32 {
-		return nil, errors.New("表单认证Key长度必须是32bytes")
+func NewCookieAuthentication(cookieAuth CookieAuthentication) (*CookieAuthentication, error) {
+	if len(cookieAuth.Extend.EncryptKey) != 32 {
+		return nil, errors.New("Cookie认证Key长度必须是32bytes")
 	}
 
-	return &forms, nil
+	return &cookieAuth, nil
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 身份验证
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
+func (cookieAuth *CookieAuthentication) Validation() gin.HandlerFunc {
 	currentUserIdentity := ging.UserIdentity{
 		UserId:          0,
 		IsAuthenticated: false,
@@ -71,9 +71,9 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
 		//允许指定模式的Url跳过验证
-		isPass := strings.HasPrefix(ctx.Request.URL.Path, forms.Extend.LogonUrl)
+		isPass := strings.HasPrefix(ctx.Request.URL.Path, cookieAuth.Extend.LogonUrl)
 		if !isPass {
-			for _, passUrl := range forms.Extend.PassUrls {
+			for _, passUrl := range cookieAuth.Extend.PassUrls {
 				isPass = strings.HasPrefix(ctx.Request.URL.Path, passUrl)
 				if isPass {
 					break
@@ -81,11 +81,11 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 			}
 		}
 
-		//如果没有启用登陆或跳过url
-		if !forms.Extend.IsEnabled || isPass {
+		//如果未启用认证或跳过url
+		if !cookieAuth.Extend.IsEnabled || isPass {
 			log.Println("authentication url pass")
 			if isPass {
-				if userIdentity, err := forms.parseUserIdentity(ctx); err == nil {
+				if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err == nil {
 					currentUserIdentity = *userIdentity
 					log.Println("authentication url pass currentUserIdentity: %v", currentUserIdentity)
 					if userIdentity.UserId > 0 {
@@ -100,18 +100,18 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 			ctx.Next()
 			return
 		} else {
-			if userIdentity, err := forms.parseUserIdentity(ctx); err != nil {
+			if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err != nil {
 				log.Printf("authentication parseUserIdentity error: %v", err)
-				forms.errorHandler(ctx)
+				cookieAuth.errorHandler(ctx)
 				ctx.Set(ging.UserIdentityKey, currentUserIdentity)
 				return
 			} else {
 				log.Printf("authentication userIdentity: %v", userIdentity)
 				if !userIdentity.IsAuthenticated {
-					isSuccess := forms.Validate(ctx, forms.Extend, userIdentity)
+					isSuccess := cookieAuth.Validate(ctx, cookieAuth.Extend, userIdentity)
 					log.Printf("authentication Validate isSuccess %v", isSuccess)
 					if !isSuccess {
-						forms.errorHandler(ctx)
+						cookieAuth.errorHandler(ctx)
 						return
 					}
 				}
@@ -128,12 +128,12 @@ func (forms *FormsAuthentication) Validation() gin.HandlerFunc {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 解析用户标识
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.UserIdentity, error) {
-	//解析cookie
+func (cookieAuth *CookieAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.UserIdentity, error) {
+	//解析Cookie
 	userIdentity := new(ging.UserIdentity)
-	if cookie, err := ctx.Request.Cookie(forms.Extend.Cookie.Name); err != nil {
+	if httpCookie, err := ctx.Request.Cookie(cookieAuth.Extend.Option.Name); err != nil {
 		return nil, err
-	} else if err := userIdentity.DecryptAES([]byte(forms.Extend.EncryptKey), cookie.Value); err != nil {
+	} else if err := userIdentity.DecryptAES([]byte(cookieAuth.Extend.EncryptKey), httpCookie.Value); err != nil {
 		return nil, err
 	}
 
@@ -143,17 +143,17 @@ func (forms *FormsAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.Use
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 错误处理
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
+func (cookieAuth *CookieAuthentication) errorHandler(ctx *gin.Context) {
 	errorResult := map[string]interface{}{
 		"Code": 299,
 		"Msg":  "用户未认证",
 		"Data": nil,
 	}
-	logonUrl := forms.Extend.LogonUrl
+	logonUrl := cookieAuth.Extend.LogonUrl
 	requestUrl := ctx.Request.URL.RequestURI()
 
 	//认证失败的处理
-	if forms.Extend.IsJson {
+	if cookieAuth.Extend.IsJson {
 		result.JsonResult(ctx, errorResult).Render()
 	} else {
 		logonUrl += "?returnurl=" + glib.UrlEncode(requestUrl)
@@ -168,33 +168,33 @@ func (forms *FormsAuthentication) errorHandler(ctx *gin.Context) {
  * userIdentity: 用户标示符域模型
  * isRemember: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
+func (cookieAuth *CookieAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
 	userIdentity.IsAuthenticated = true
-	ticket, err := userIdentity.EncryptAES([]byte(forms.Extend.EncryptKey))
+	ticket, err := userIdentity.EncryptAES([]byte(cookieAuth.Extend.EncryptKey))
 	if err != nil {
 		return false
 	}
 
 	path := "/"
-	if len(forms.Extend.Cookie.Path) > 0 {
-		path = forms.Extend.Cookie.Path
+	if len(cookieAuth.Extend.Option.Path) > 0 {
+		path = cookieAuth.Extend.Option.Path
 	}
 
-	cookie := http.Cookie{
-		Name:     forms.Extend.Cookie.Name,
+	httpCookie := http.Cookie{
+		Name:     cookieAuth.Extend.Option.Name,
 		Value:    ticket,
 		Path:     path,
-		Domain:   forms.Extend.Cookie.Domain,
-		HttpOnly: forms.Extend.Cookie.HttpOnly,
+		Domain:   cookieAuth.Extend.Option.Domain,
+		HttpOnly: cookieAuth.Extend.Option.HttpOnly,
 	}
 
 	if isRemember {
-		cookie.MaxAge = forms.Extend.Cookie.MaxAge
+		httpCookie.MaxAge = cookieAuth.Extend.Option.MaxAge
 	} else {
-		cookie.MaxAge = 0
+		httpCookie.MaxAge = 0
 	}
 
-	http.SetCookie(ctx.Writer, &cookie)
+	http.SetCookie(ctx.Writer, &httpCookie)
 
 	return true
 }
@@ -202,21 +202,21 @@ func (forms *FormsAuthentication) Logon(ctx *gin.Context, userIdentity *ging.Use
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (forms *FormsAuthentication) Logoff(ctx *gin.Context) bool {
+func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) bool {
 	path := "/"
-	if len(forms.Extend.Cookie.Path) > 0 {
-		path = forms.Extend.Cookie.Path
+	if len(cookieAuth.Extend.Option.Path) > 0 {
+		path = cookieAuth.Extend.Option.Path
 	}
 
 	//删除cookie
-	cookie := http.Cookie{
-		Name:   forms.Extend.Cookie.Name,
+	httpCookie := http.Cookie{
+		Name:   cookieAuth.Extend.Option.Name,
 		Value:  "",
 		MaxAge: -1,
 		Path:   path,
-		Domain: forms.Extend.Cookie.Domain,
+		Domain: cookieAuth.Extend.Option.Domain,
 	}
-	http.SetCookie(ctx.Writer, &cookie)
+	http.SetCookie(ctx.Writer, &httpCookie)
 
 	return true
 }
