@@ -187,7 +187,7 @@ func (tokenAuth *TokenAuthentication) errorHandler(ctx *gin.Context) {
  * userIdentity: 用户标示符域模型
  * isRemember: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
+func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) bool {
 	//当前时间戳加上秒数
 	maxAge := 900
 	if tokenAuth.Extend.Option.MaxAge > 0 {

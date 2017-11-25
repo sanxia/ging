@@ -70,8 +70,8 @@ func customValidate(ctx *gin.Context, tokenExtend TokenExtend, userIdentity *gin
  * userModel: 用户数据模型
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
-	return tokenAuth.Logon(ctx, userIdentity, isRemember)
+func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) bool {
+	return tokenAuth.Logon(ctx, userIdentity)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
