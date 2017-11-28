@@ -77,6 +77,6 @@ func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) b
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Logoff(ctx *gin.Context) bool {
-	return cookieAuth.Logoff(ctx)
+func Logoff(ctx *gin.Context) {
+	cookieAuth.Logoff(ctx)
 }

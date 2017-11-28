@@ -70,13 +70,13 @@ func customValidate(ctx *gin.Context, tokenExtend TokenExtend, userIdentity *gin
  * userModel: 用户数据模型
  * isPersistence: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) bool {
+func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) string {
 	return tokenAuth.Logon(ctx, userIdentity)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Logoff(ctx *gin.Context) bool {
-	return tokenAuth.Logoff(ctx)
+func Logoff(ctx *gin.Context) {
+	tokenAuth.Logoff(ctx)
 }

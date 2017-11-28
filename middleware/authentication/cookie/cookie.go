@@ -202,7 +202,7 @@ func (cookieAuth *CookieAuthentication) Logon(ctx *gin.Context, userIdentity *gi
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) bool {
+func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) {
 	path := "/"
 	if len(cookieAuth.Extend.Option.Path) > 0 {
 		path = cookieAuth.Extend.Option.Path
@@ -217,6 +217,4 @@ func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) bool {
 		Domain: cookieAuth.Extend.Option.Domain,
 	}
 	http.SetCookie(ctx.Writer, &httpCookie)
-
-	return true
 }

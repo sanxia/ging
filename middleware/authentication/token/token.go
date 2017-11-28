@@ -187,7 +187,7 @@ func (tokenAuth *TokenAuthentication) errorHandler(ctx *gin.Context) {
  * userIdentity: 用户标示符域模型
  * isRemember: 是否持久化登陆信息
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) bool {
+func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) string {
 	//当前时间戳加上秒数
 	maxAge := 900
 	if tokenAuth.Extend.Option.MaxAge > 0 {
@@ -199,7 +199,7 @@ func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging
 	userIdentity.IsAuthenticated = true
 	ticket, err := userIdentity.EncryptAES([]byte(tokenAuth.Extend.EncryptKey))
 	if err != nil {
-		return false
+		return ""
 	}
 
 	tokenName := TokenName
@@ -209,19 +209,17 @@ func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging
 
 	ctx.Header(tokenName, ticket)
 
-	return true
+	return ticket
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (tokenAuth *TokenAuthentication) Logoff(ctx *gin.Context) bool {
+func (tokenAuth *TokenAuthentication) Logoff(ctx *gin.Context) {
 	tokenName := TokenName
 	if tokenAuth.Extend.Option.Name != "" {
 		tokenName = tokenAuth.Extend.Option.Name
 	}
 
 	ctx.Header(tokenName, "")
-
-	return true
 }

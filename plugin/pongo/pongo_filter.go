@@ -119,8 +119,10 @@ func filterThumbImage(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *po
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func filterUserDomain(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	username := in.String()
+	userId := param.String()
+
 	if username == "" {
-		return pongo2.AsSafeValue(username), nil
+		username = userId
 	}
 
 	domain := "http://www.woshiyiren.com/" + username
