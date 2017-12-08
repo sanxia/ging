@@ -141,17 +141,26 @@ func (tokenAuth *TokenAuthentication) parseUserIdentity(ctx *gin.Context) (*ging
 	userIdentity := new(ging.UserIdentity)
 
 	tokenName := TokenName
+	tokenValue := ""
+
 	if tokenAuth.Extend.Option.Name != "" {
 		tokenName = tokenAuth.Extend.Option.Name
 	}
 
-	values, isOk := ctx.Request.Header[tokenName]
-	if !isOk || len(values) == 0 {
-		return nil, errors.New("token error")
+	if cookieToken, err := ctx.Request.Cookie(tokenName); err == nil {
+		//先从Cookie里获取
+		tokenValue = cookieToken.Value
+	} else {
+		//如果Cookie里不存在则从请求头获取
+		if headerToken, isOk := ctx.Request.Header[tokenName]; !isOk || len(headerToken) == 0 {
+			return nil, errors.New("token error")
+		} else {
+			tokenValue = headerToken[0]
+		}
 	}
 
-	if value := values[0]; len(value) > 0 {
-		if err := userIdentity.DecryptAES([]byte(tokenAuth.Extend.EncryptKey), value); err != nil {
+	if len(tokenValue) > 0 {
+		if err := userIdentity.DecryptAES([]byte(tokenAuth.Extend.EncryptKey), tokenValue); err != nil {
 			return nil, err
 		}
 	}

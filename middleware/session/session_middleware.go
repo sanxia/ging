@@ -21,7 +21,6 @@ const (
 )
 
 type SessionOption struct {
-	Name       string
 	StoreType  string
 	EncryptKey string
 	Cookie     *SessionCookieOption
@@ -29,6 +28,7 @@ type SessionOption struct {
 }
 
 type SessionCookieOption struct {
+	Name     string
 	Path     string
 	Domain   string
 	MaxAge   int
@@ -59,6 +59,7 @@ func CookieStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc 
 
 	//session id 的cookie存储属性设置
 	options := Options{
+		Name:     sessionOption.Cookie.Name,
 		Path:     sessionOption.Cookie.Path,
 		Domain:   sessionOption.Cookie.Domain,
 		MaxAge:   sessionOption.Cookie.MaxAge,
@@ -67,7 +68,7 @@ func CookieStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc 
 	}
 	store.Options(options)
 
-	return StoreSessionMiddleware(sessionOption.Name, store)
+	return StoreSessionMiddleware(sessionOption.Cookie.Name, store)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -84,6 +85,7 @@ func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
 
 	//session id 的cookie存储属性设置
 	options := Options{
+		Name:     sessionOption.Cookie.Name,
 		Path:     sessionOption.Cookie.Path,
 		Domain:   sessionOption.Cookie.Domain,
 		MaxAge:   sessionOption.Cookie.MaxAge,
@@ -92,7 +94,7 @@ func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
 	}
 	store.Options(options)
 
-	return StoreSessionMiddleware(sessionOption.Name, store)
+	return StoreSessionMiddleware(sessionOption.Cookie.Name, store)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -7,89 +7,39 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 )
 
-// Amount of time for cookies/redis keys to expire.
-var sessionExpire = 86400 * 30
+import (
+	"github.com/garyburd/redigo/redis"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
+	"github.com/sanxia/glib"
+)
 
-// RediStore stores sessions in a redis backend.
+var sessionExpire = 30 * 24 * 60 * 60
+var isSecureCookie = false //是否随时间动态变化的cookie
+
+type JSONSerializer struct{}
+type GobSerializer struct{}
+
 type RediStore struct {
 	Pool          *redis.Pool
 	Codecs        []securecookie.Codec
-	Options       *sessions.Options // default configuration
-	DefaultMaxAge int               // default Redis TTL for a MaxAge == 0 session
+	Options       *sessions.Options
+	key           string
+	DefaultMaxAge int
 	maxLength     int
 	keyPrefix     string
 	serializer    SessionSerializer
 }
 
-// SetMaxLength sets RediStore.maxLength if the `l` argument is greater or equal 0
-// maxLength restricts the maximum length of new sessions to l.
-// If l is 0 there is no limit to the size of a session, use with caution.
-// The default for a new RediStore is 4096. Redis allows for max.
-// value sizes of up to 512MB (http://redis.io/topics/data-types)
-// Default: 4096,
-func (s *RediStore) SetMaxLength(l int) {
-	if l >= 0 {
-		s.maxLength = l
-	}
-}
-
-// SetKeyPrefix set the prefix
-func (s *RediStore) SetKeyPrefix(p string) {
-	s.keyPrefix = p
-}
-
-// SetSerializer sets the serializer
-func (s *RediStore) SetSerializer(ss SessionSerializer) {
-	s.serializer = ss
-}
-
-// SetMaxAge restricts the maximum age, in seconds, of the session record
-// both in database and a browser. This is to change session storage configuration.
-// If you want just to remove session use your session `s` object and change it's
-// `Options.MaxAge` to -1, as specified in
-// http://godoc.org/github.com/gorilla/sessions#Options
-//
-// Default is the one provided by this package value - `sessionExpire`.
-// Set it to 0 for no restriction.
-// Because we use `MaxAge` also in SecureCookie crypting algorithm you should
-// use this function to change `MaxAge` value.
-func (s *RediStore) SetMaxAge(v int) {
-	var c *securecookie.SecureCookie
-	var ok bool
-	s.Options.MaxAge = v
-	for i := range s.Codecs {
-		if c, ok = s.Codecs[i].(*securecookie.SecureCookie); ok {
-			c.MaxAge(v)
-		} else {
-			fmt.Printf("Can't change MaxAge on codec %v\n", s.Codecs[i])
-		}
-	}
-}
-
-func dial(network, address, password string) (redis.Conn, error) {
-	c, err := redis.Dial(network, address)
-	if err != nil {
-		return nil, err
-	}
-	if password != "" {
-		if _, err := c.Do("AUTH", password); err != nil {
-			c.Close()
-			return nil, err
-		}
-	}
-	return c, err
-}
-
-// NewRediStore returns a new RediStore.
-// size: maximum number of idle connections.
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 返回新的RediStore
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewRediStore(size int, network, address, password string, keyPairs ...[]byte) (*RediStore, error) {
 	return NewRediStoreWithPool(&redis.Pool{
 		MaxIdle:     size,
@@ -104,8 +54,9 @@ func NewRediStore(size int, network, address, password string, keyPairs ...[]byt
 	}, keyPairs...)
 }
 
-// NewRediStoreWithDB - like NewRedisStore but accepts `DB` parameter to select
-// redis DB instead of using the default one ("0")
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 返回新的RediStore，可指定redis数据库
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewRediStoreWithDB(size int, network, address, password, DB string, keyPairs ...[]byte) (*RediStore, error) {
 	return NewRediStoreWithPool(&redis.Pool{
 		MaxIdle:     size,
@@ -120,17 +71,19 @@ func NewRediStoreWithDB(size int, network, address, password, DB string, keyPair
 	}, keyPairs...)
 }
 
-// NewRediStoreWithPool instantiates a RediStore with a *redis.Pool passed in.
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 实例化RedisPool
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewRediStoreWithPool(pool *redis.Pool, keyPairs ...[]byte) (*RediStore, error) {
 	rs := &RediStore{
-		// http://godoc.org/github.com/garyburd/redigo/redis#Pool
 		Pool:   pool,
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
 		Options: &sessions.Options{
 			Path:   "/",
 			MaxAge: sessionExpire,
 		},
-		DefaultMaxAge: 60 * 20, // 20 minutes seems like a reasonable default
+		DefaultMaxAge: sessionExpire,
+		key:           string(keyPairs[0]),
 		maxLength:     4096,
 		keyPrefix:     "session_",
 		serializer:    GobSerializer{},
@@ -139,6 +92,26 @@ func NewRediStoreWithPool(pool *redis.Pool, keyPairs ...[]byte) (*RediStore, err
 	return rs, err
 }
 
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * redis链接
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func dial(network, address, password string) (redis.Conn, error) {
+	c, err := redis.Dial(network, address)
+	if err != nil {
+		return nil, err
+	}
+	if password != "" {
+		if _, err := c.Do("AUTH", password); err != nil {
+			c.Close()
+			return nil, err
+		}
+	}
+	return c, err
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * redis链接，可指定数据库
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func dialWithDB(network, address, password, DB string) (redis.Conn, error) {
 	c, err := redis.Dial(network, address)
 	if err != nil {
@@ -157,30 +130,78 @@ func dialWithDB(network, address, password, DB string) (redis.Conn, error) {
 	return c, err
 }
 
-// Close closes the underlying *redis.Pool
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置Redis Key前缀
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RediStore) SetKeyPrefix(p string) {
+	s.keyPrefix = p
+}
+
+//设置会话最大有效时间
+func (s *RediStore) SetMaxAge(v int) {
+	var c *securecookie.SecureCookie
+	var ok bool
+	s.Options.MaxAge = v
+	for i := range s.Codecs {
+		if c, ok = s.Codecs[i].(*securecookie.SecureCookie); ok {
+			c.MaxAge(v)
+		} else {
+			fmt.Printf("Can't change MaxAge on codec %v\n", s.Codecs[i])
+		}
+	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置最大长度
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RediStore) SetMaxLength(l int) {
+	if l >= 0 {
+		s.maxLength = l
+	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置序列化方式
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RediStore) SetSerializer(ss SessionSerializer) {
+	s.serializer = ss
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 关闭redis链接
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *RediStore) Close() error {
 	return s.Pool.Close()
 }
 
-// Get returns a session for the given name after adding it to the registry.
-//
-// See gorilla/sessions FilesystemStore.Get().
-func (s *RediStore) Get(r *http.Request, name string) (*sessions.Session, error) {
-	return sessions.GetRegistry(r).Get(s, name)
-}
-
-// New returns a session for the given name without adding it to the registry.
-//
-// See gorilla/sessions FilesystemStore.New().
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 实例化会话
+ * IStore接口实现
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *RediStore) New(r *http.Request, name string) (*sessions.Session, error) {
+	log.Printf("mliu redis.go New name:%s", name)
+
 	var err error
+
 	session := sessions.NewSession(s, name)
-	// make a copy
 	options := *s.Options
 	session.Options = &options
 	session.IsNew = true
+
+	log.Printf("mliu redis.go New request: %v", r)
+
 	if c, errCookie := r.Cookie(name); errCookie == nil {
-		err = securecookie.DecodeMulti(name, c.Value, &session.ID, s.Codecs...)
+		if isSecureCookie {
+			err = securecookie.DecodeMulti(name, c.Value, &session.ID, s.Codecs...)
+		} else {
+			decodeData, err := CustomDecode(name, c.Value, s.key)
+			if err == nil {
+				session.ID = decodeData
+			}
+		}
+
+		log.Printf("mliu redis.go New name:%s, c.Value: %s, session.ID: %s", name, c.Value, session.ID)
+
 		if err == nil {
 			ok, err := s.load(session)
 			session.IsNew = !(err == nil && ok) // not new if no error and data available
@@ -189,53 +210,112 @@ func (s *RediStore) New(r *http.Request, name string) (*sessions.Session, error)
 	return session, err
 }
 
-// Save adds a single session to the response.
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取会话
+ * IStore接口实现
+ * 第一次会回调当前store的New，实例化Store
+ * 随后会从Register缓存sessions map[string]sessionInfo的里取出sessionInfo对象里的s值即sessions.Session对象
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RediStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+	return sessions.GetRegistry(r).Get(s, name)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 保存会话
+ * IStore接口实现
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *RediStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
-	// Marked for deletion.
 	if session.Options.MaxAge < 0 {
 		if err := s.delete(session); err != nil {
 			return err
 		}
 		http.SetCookie(w, sessions.NewCookie(session.Name(), "", session.Options))
 	} else {
-		// Build an alphanumeric key for the redis store.
 		if session.ID == "" {
 			session.ID = strings.TrimRight(base32.StdEncoding.EncodeToString(securecookie.GenerateRandomKey(32)), "=")
 		}
+
 		if err := s.save(session); err != nil {
 			return err
 		}
-		encoded, err := securecookie.EncodeMulti(session.Name(), session.ID, s.Codecs...)
-		if err != nil {
-			return err
+
+		if isSecureCookie {
+			encoded, err := securecookie.EncodeMulti(session.Name(), session.ID, s.Codecs...)
+			if err != nil {
+				return err
+			}
+			http.SetCookie(w, sessions.NewCookie(session.Name(), encoded, session.Options))
+		} else {
+			encodeData, err := CustomEncode(session.Name(), session.ID, s.key)
+			if err != nil {
+				return err
+			}
+			http.SetCookie(w, sessions.NewCookie(session.Name(), encodeData, session.Options))
 		}
-		http.SetCookie(w, sessions.NewCookie(session.Name(), encoded, session.Options))
 	}
 	return nil
 }
 
-// Delete removes the session from redis, and sets the cookie to expire.
-//
-// WARNING: This method should be considered deprecated since it is not exposed via the gorilla/sessions interface.
-// Set session.Options.MaxAge = -1 and call Save instead. - July 18th, 2013
-func (s *RediStore) Delete(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
-	conn := s.Pool.Get()
-	defer conn.Close()
-	if _, err := conn.Do("DEL", s.keyPrefix+session.ID); err != nil {
-		return err
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 自定义编码
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func CustomEncode(name, sourceData string, key string) (string, error) {
+	data := ""
+	hashKey := key[:16]
+
+	bytesData, err := glib.AesEncrypt([]byte(sourceData), []byte(key))
+	if err == nil {
+		data = glib.ToBase64(string(bytesData))
+
+		hash := glib.HmacSha256(fmt.Sprintf("%s|%s", name, data), hashKey)
+
+		data = fmt.Sprintf("%s|%s", data, hash)
+
+		data = glib.ToBase64(data)
 	}
-	// Set cookie to expire.
-	options := *session.Options
-	options.MaxAge = -1
-	http.SetCookie(w, sessions.NewCookie(session.Name(), "", &options))
-	// Clear session values.
-	for k := range session.Values {
-		delete(session.Values, k)
-	}
-	return nil
+
+	return data, err
 }
 
-// ping does an internal ping against a server to check if it is alive.
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 自定义解码
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func CustomDecode(name, encodeData string, key string) (string, error) {
+	data := ""
+	decodeData, err := glib.FromBase64(encodeData)
+
+	hashKey := key[:16]
+
+	if err != nil {
+		return "", err
+	}
+
+	datas := strings.Split(decodeData, "|")
+	if len(datas) != 2 {
+		return "", errors.New("args err")
+	}
+
+	hash := glib.HmacSha256(fmt.Sprintf("%s|%s", name, datas[0]), hashKey)
+	if hash != datas[1] {
+		return "", errors.New("args err")
+	}
+
+	sourceData, err := glib.FromBase64(datas[0])
+	if err != nil {
+		return "", errors.New("args err")
+	}
+
+	bytesData, err := glib.AesDecrypt([]byte(sourceData), []byte(key))
+	if err == nil {
+		data = string(bytesData)
+	}
+
+	return data, err
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 检测服务器是否活着
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *RediStore) ping() (bool, error) {
 	conn := s.Pool.Get()
 	defer conn.Close()
@@ -246,7 +326,9 @@ func (s *RediStore) ping() (bool, error) {
 	return (data == "PONG"), nil
 }
 
-// save stores the session in redis.
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 会话存入Redis
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *RediStore) save(session *sessions.Session) error {
 	b, err := s.serializer.Serialize(session)
 	if err != nil {
@@ -268,48 +350,59 @@ func (s *RediStore) save(session *sessions.Session) error {
 	return err
 }
 
-// load reads the session from redis.
-// returns true if there is a sessoin data in DB
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 从Redis读取会话
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *RediStore) load(session *sessions.Session) (bool, error) {
 	conn := s.Pool.Get()
 	defer conn.Close()
+
 	if err := conn.Err(); err != nil {
 		return false, err
 	}
+
 	data, err := conn.Do("GET", s.keyPrefix+session.ID)
 	if err != nil {
 		return false, err
 	}
+
 	if data == nil {
-		return false, nil // no data was associated with this key
+		return false, nil
 	}
+
 	b, err := redis.Bytes(data, err)
 	if err != nil {
 		return false, err
 	}
+
 	return true, s.serializer.Deserialize(b, session)
 }
 
-// delete removes keys from redis if MaxAge<0
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 从Redis删除会话
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *RediStore) delete(session *sessions.Session) error {
 	conn := s.Pool.Get()
 	defer conn.Close()
+
 	if _, err := conn.Do("DEL", s.keyPrefix+session.ID); err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// SessionSerializer provides an interface hook for alternative serializers
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 会话序列化接口
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type SessionSerializer interface {
 	Deserialize(d []byte, ss *sessions.Session) error
 	Serialize(ss *sessions.Session) ([]byte, error)
 }
 
-// JSONSerializer encode the session map to JSON.
-type JSONSerializer struct{}
-
-// Serialize to JSON. Will err if there are unmarshalable key values
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Json序列化
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s JSONSerializer) Serialize(ss *sessions.Session) ([]byte, error) {
 	m := make(map[string]interface{}, len(ss.Values))
 	for k, v := range ss.Values {
@@ -324,7 +417,9 @@ func (s JSONSerializer) Serialize(ss *sessions.Session) ([]byte, error) {
 	return json.Marshal(m)
 }
 
-// Deserialize back to map[string]interface{}
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Json反序列化
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s JSONSerializer) Deserialize(d []byte, ss *sessions.Session) error {
 	m := make(map[string]interface{})
 	err := json.Unmarshal(d, &m)
@@ -338,10 +433,9 @@ func (s JSONSerializer) Deserialize(d []byte, ss *sessions.Session) error {
 	return nil
 }
 
-// GobSerializer uses gob package to encode the session map
-type GobSerializer struct{}
-
-// Serialize using gob
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Gob序列化
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s GobSerializer) Serialize(ss *sessions.Session) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
@@ -352,7 +446,9 @@ func (s GobSerializer) Serialize(ss *sessions.Session) ([]byte, error) {
 	return nil, err
 }
 
-// Deserialize back to map[interface{}]interface{}
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Gob反序列化
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s GobSerializer) Deserialize(d []byte, ss *sessions.Session) error {
 	dec := gob.NewDecoder(bytes.NewBuffer(d))
 	return dec.Decode(&ss.Values)

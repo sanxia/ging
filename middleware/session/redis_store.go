@@ -43,12 +43,14 @@ func NewRedisStore(ip string, port int, password, prefixKey string, keyPairs ...
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Redis存储选项
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (c *redisStore) Options(options Options) {
-	c.RediStore.Options = &sessions.Options{
+func (s *redisStore) Options(options Options) {
+	s.RediStore.Options = &sessions.Options{
 		Path:     options.Path,
 		Domain:   options.Domain,
 		MaxAge:   options.MaxAge,
 		Secure:   options.Secure,
 		HttpOnly: options.HttpOnly,
 	}
+
+	s.RediStore.SetMaxAge(options.MaxAge)
 }
