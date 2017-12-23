@@ -24,7 +24,7 @@ import (
  * author  : 美丽的地球啊
  * ================================================================================ */
 const (
-	TokenName string = "Sx-Token"
+	TokenName string = "Sx-Access-Token"
 )
 
 type (
@@ -108,16 +108,16 @@ func (tokenAuth *TokenAuthentication) Validation() gin.HandlerFunc {
 				return
 			} else {
 				log.Printf("authentication userIdentity: %v", userIdentity)
+
+				//时间是否过期
+				if time.Now().After(time.Unix(userIdentity.Expires, 0)) {
+					tokenAuth.errorHandler(ctx)
+					return
+				}
+
 				if !userIdentity.IsAuthenticated {
 					isSuccess := tokenAuth.Validate(ctx, tokenAuth.Extend, userIdentity)
 					log.Printf("authentication Validate isSuccess %v", isSuccess)
-
-					if isSuccess {
-						//时间是否过期
-						if time.Now().After(time.Unix(userIdentity.Expires, 0)) {
-							isSuccess = false
-						}
-					}
 
 					if !isSuccess {
 						tokenAuth.errorHandler(ctx)
@@ -147,22 +147,29 @@ func (tokenAuth *TokenAuthentication) parseUserIdentity(ctx *gin.Context) (*ging
 		tokenName = tokenAuth.Extend.Option.Name
 	}
 
-	if cookieToken, err := ctx.Request.Cookie(tokenName); err == nil {
-		//先从Cookie里获取
-		tokenValue = cookieToken.Value
-	} else {
-		//如果Cookie里不存在则从请求头获取
-		if headerToken, isOk := ctx.Request.Header[tokenName]; !isOk || len(headerToken) == 0 {
-			return nil, errors.New("token error")
+	//从请求头获取>从查询参数获取取>最后从请求体获取>从Cookie获取
+	if token, isOk := ctx.Request.Header[tokenName]; !isOk {
+		if token, ok := ctx.Request.URL.Query()[tokenName]; !ok {
+			if token := ctx.PostForm(tokenName); len(token) == 0 {
+				if cookieToken, err := ctx.Request.Cookie(tokenName); err == nil {
+					tokenValue = cookieToken.Value
+				}
+			} else {
+				tokenValue = token
+			}
 		} else {
-			tokenValue = headerToken[0]
+			tokenValue = token[0]
 		}
+	} else {
+		tokenValue = token[0]
 	}
 
-	if len(tokenValue) > 0 {
-		if err := userIdentity.DecryptAES([]byte(tokenAuth.Extend.EncryptKey), tokenValue); err != nil {
-			return nil, err
-		}
+	if len(tokenValue) == 0 {
+		return nil, errors.New("empty token error")
+	}
+
+	if err := userIdentity.DecryptAES([]byte(tokenAuth.Extend.EncryptKey), tokenValue); err != nil {
+		return nil, err
 	}
 
 	return userIdentity, nil
