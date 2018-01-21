@@ -1,7 +1,8 @@
 package ging
 
 import (
-//"log"
+	"log"
+	"strings"
 )
 
 import (
@@ -27,7 +28,11 @@ type (
 		Action(action func(ctx *gin.Context) IActionResult, args ...interface{}) func(*gin.Context)
 		Filter(filters ...IActionFilter) IController
 
-		GetSession(ctx *gin.Context) session.ISession
+		SaveSession(ctx *gin.Context, name, value string)
+		ValidateSession(ctx *gin.Context, name, value string, args ...bool) bool
+		RemoveSession(ctx *gin.Context, name string)
+		ClearSession(ctx *gin.Context)
+
 		GetUserIdentity(ctx *gin.Context) *UserIdentity
 	}
 )
@@ -150,37 +155,45 @@ func (ctrl *Controller) GetUserIdentity(ctx *gin.Context) *UserIdentity {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取会话对象
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) GetSession(ctx *gin.Context) session.ISession {
+func (ctrl *Controller) getSession(ctx *gin.Context) session.ISession {
 	//log.Printf("ctrl GetSession: sid: %s, values: %v", session.Get(ctx).SessionId(), session.Get(ctx).Values())
-
 	return session.Get(ctx)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 保存会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) SaveSessionValue(ctx *gin.Context, name, value interface{}) {
+func (ctrl *Controller) SaveSession(ctx *gin.Context, name, value string) {
+	log.Printf("SaveSession name:%s value: %s", name, value)
+
+	if len(name) == 0 || len(value) == 0 {
+		return
+	}
+
 	//保存手机验证码
-	session := ctrl.GetSession(ctx)
-	session.Set(name, value)
+	session := ctrl.getSession(ctx)
+	session.Set(name, strings.ToLower(value))
 	session.Save()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 校验会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value string, args ...bool) bool {
-	isSuccess := true
-	isRemove := true
+func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, args ...bool) bool {
+	log.Printf("ValidateSession name:%s value: %s", name, value)
 
 	if len(name) == 0 || len(value) == 0 {
 		isSuccess := false
 		return isSuccess
 	}
 
-	session := ctrl.GetSession(ctx)
+	isSuccess := true
+	isRemove := true
+
+	session := ctrl.getSession(ctx)
 	if sessionValue, isOk := session.Get(name).(string); isOk {
-		if sessionValue != value {
+		log.Printf("ValidateSession sessionValue: %s", sessionValue)
+		if sessionValue != strings.ToLower(value) {
 			isSuccess = false
 		}
 	} else {
@@ -207,8 +220,15 @@ func (ctrl *Controller) ValidateSessionValue(ctx *gin.Context, name, value strin
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 移除会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) RemoveSessionValue(ctx *gin.Context, name string) {
-	session := ctrl.GetSession(ctx)
+func (ctrl *Controller) RemoveSession(ctx *gin.Context, name string) {
+	session := ctrl.getSession(ctx)
 	session.Delete(name)
 	session.Save()
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 清除会话
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) ClearSession(ctx *gin.Context) {
+	ctrl.getSession(ctx).Clear()
 }
