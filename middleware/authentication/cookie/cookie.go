@@ -2,6 +2,7 @@ package cookie
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -34,6 +35,7 @@ type (
 		Option     *CookieOption //forms cookie
 		Role       string        //角色（多个之间用逗号分隔）
 		LogonUrl   string        //认证url
+		DefaultUrl string        //认证通过默认返回url
 		PassUrls   []string      //直接通过的url
 		EncryptKey string        //加密key
 		IsJson     bool          //是否json响应
@@ -58,109 +60,6 @@ func NewCookieAuthentication(cookieAuth CookieAuthentication) (*CookieAuthentica
 	}
 
 	return &cookieAuth, nil
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 身份验证
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) Validation() gin.HandlerFunc {
-	currentUserIdentity := ging.UserIdentity{
-		UserId:          0,
-		IsAuthenticated: false,
-	}
-
-	return func(ctx *gin.Context) {
-		//允许指定模式的Url跳过验证
-		isPass := strings.HasPrefix(ctx.Request.URL.Path, cookieAuth.Extend.LogonUrl)
-		if !isPass {
-			for _, passUrl := range cookieAuth.Extend.PassUrls {
-				isPass = strings.HasPrefix(ctx.Request.URL.Path, passUrl)
-				if isPass {
-					break
-				}
-			}
-		}
-
-		//如果未启用认证或跳过url
-		if !cookieAuth.Extend.IsEnabled || isPass {
-			log.Println("authentication url pass")
-			if isPass {
-				if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err == nil {
-					currentUserIdentity = *userIdentity
-					log.Println("authentication url pass currentUserIdentity: %v", currentUserIdentity)
-					if userIdentity.UserId > 0 {
-						currentUserIdentity.IsAuthenticated = true
-					}
-				} else {
-					currentUserIdentity.UserId = 0
-					currentUserIdentity.IsAuthenticated = false
-				}
-			}
-			ctx.Set(ging.UserIdentityKey, currentUserIdentity)
-			ctx.Next()
-			return
-		} else {
-			if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err != nil {
-				log.Printf("authentication parseUserIdentity error: %v", err)
-				cookieAuth.errorHandler(ctx)
-				ctx.Set(ging.UserIdentityKey, currentUserIdentity)
-				return
-			} else {
-				log.Printf("authentication userIdentity: %v", userIdentity)
-				if !userIdentity.IsAuthenticated {
-					isSuccess := cookieAuth.Validate(ctx, cookieAuth.Extend, userIdentity)
-					log.Printf("authentication Validate isSuccess %v", isSuccess)
-					if !isSuccess {
-						cookieAuth.errorHandler(ctx)
-						return
-					}
-				}
-
-				//传递验证用户标识
-				log.Printf("authentication Set UserIdentityKey: %v", userIdentity)
-				ctx.Set(ging.UserIdentityKey, *userIdentity)
-				ctx.Next()
-			}
-		}
-	}
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 解析用户标识
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.UserIdentity, error) {
-	//解析Cookie
-	userIdentity := new(ging.UserIdentity)
-	if httpCookie, err := ctx.Request.Cookie(cookieAuth.Extend.Option.Name); err != nil {
-		return nil, err
-	} else if err := userIdentity.DecryptAES([]byte(cookieAuth.Extend.EncryptKey), httpCookie.Value); err != nil {
-		return nil, err
-	}
-
-	return userIdentity, nil
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 错误处理
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) errorHandler(ctx *gin.Context) {
-	errorResult := map[string]interface{}{
-		"Code": 299,
-		"Msg":  "用户未认证",
-		"Data": nil,
-	}
-	logonUrl := cookieAuth.Extend.LogonUrl
-	requestUrl := ctx.Request.URL.RequestURI()
-
-	//认证失败的处理
-	if cookieAuth.Extend.IsJson {
-		result.JsonResult(ctx, errorResult).Render()
-	} else {
-		logonUrl += "?returnurl=" + glib.UrlEncode(requestUrl)
-		result.RedirectResult(ctx, logonUrl).Render()
-	}
-	ctx.Abort()
-	return
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -217,4 +116,141 @@ func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) {
 		Domain: cookieAuth.Extend.Option.Domain,
 	}
 	http.SetCookie(ctx.Writer, &httpCookie)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 身份验证
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (cookieAuth *CookieAuthentication) Validation() gin.HandlerFunc {
+	currentUserIdentity := ging.UserIdentity{
+		UserId:          0,
+		IsAuthenticated: false,
+	}
+
+	return func(ctx *gin.Context) {
+		//允许指定模式的Url跳过验证
+		isPass := strings.HasPrefix(ctx.Request.URL.Path, cookieAuth.Extend.LogonUrl)
+		if !isPass {
+			for _, passUrl := range cookieAuth.Extend.PassUrls {
+				isPass = strings.HasPrefix(ctx.Request.URL.Path, passUrl)
+				if isPass {
+					break
+				}
+			}
+		}
+
+		//如果未启用认证或跳过url
+		if !cookieAuth.Extend.IsEnabled || isPass {
+			log.Println("authentication url pass")
+			if isPass {
+				//默认返回地址处理
+				if isReturnUrl := cookieAuth.defaultReturnUrl(ctx); isReturnUrl {
+					return
+				}
+
+				//解析用户标识
+				if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err == nil {
+					currentUserIdentity = *userIdentity
+					log.Println("authentication url pass currentUserIdentity: %v", currentUserIdentity)
+					if userIdentity.UserId > 0 {
+						currentUserIdentity.IsAuthenticated = true
+					}
+				} else {
+					currentUserIdentity.UserId = 0
+					currentUserIdentity.IsAuthenticated = false
+				}
+			}
+			ctx.Set(ging.UserIdentityKey, currentUserIdentity)
+			ctx.Next()
+			return
+		} else {
+			//解析用户标识
+			if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err != nil {
+				log.Printf("authentication parseUserIdentity error: %v", err)
+				cookieAuth.errorHandler(ctx)
+				ctx.Set(ging.UserIdentityKey, currentUserIdentity)
+				return
+			} else {
+				log.Printf("authentication userIdentity: %v", userIdentity)
+				if !userIdentity.IsAuthenticated {
+					isSuccess := cookieAuth.Validate(ctx, cookieAuth.Extend, userIdentity)
+					log.Printf("authentication Validate isSuccess %v", isSuccess)
+					if !isSuccess {
+						cookieAuth.errorHandler(ctx)
+						return
+					}
+				}
+
+				//传递验证用户标识
+				log.Printf("authentication Set UserIdentityKey: %v", userIdentity)
+				ctx.Set(ging.UserIdentityKey, *userIdentity)
+				ctx.Next()
+			}
+		}
+	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 解析用户标识
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (cookieAuth *CookieAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.UserIdentity, error) {
+	//解析Cookie
+	userIdentity := new(ging.UserIdentity)
+	if httpCookie, err := ctx.Request.Cookie(cookieAuth.Extend.Option.Name); err != nil {
+		return nil, err
+	} else if err := userIdentity.DecryptAES([]byte(cookieAuth.Extend.EncryptKey), httpCookie.Value); err != nil {
+		return nil, err
+	}
+
+	return userIdentity, nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 默认返回地址处理
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (cookieAuth *CookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
+	isReturnUrl := false
+	if ctx.Request.URL.Path == cookieAuth.Extend.LogonUrl {
+		returnUrl := ctx.DefaultQuery("returnurl", "")
+		if returnUrl == "" {
+			redirectUrl := fmt.Sprintf("%s?returnurl=%s", ctx.Request.URL.Path, glib.UrlEncode(cookieAuth.Extend.DefaultUrl))
+			log.Println("authentication defaultReturnUrl: ", redirectUrl)
+
+			result.RedirectResult(ctx, redirectUrl).Render()
+			ctx.Abort()
+
+			isReturnUrl = true
+		}
+	}
+
+	return isReturnUrl
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 错误处理
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (cookieAuth *CookieAuthentication) errorHandler(ctx *gin.Context) {
+	errorResult := map[string]interface{}{
+		"Code": 299,
+		"Msg":  "用户未认证",
+		"Data": nil,
+	}
+	logonUrl := cookieAuth.Extend.LogonUrl
+	defaultUrl := cookieAuth.Extend.DefaultUrl
+	returnUrl := ctx.Request.URL.RequestURI()
+
+	log.Printf("errorHandler returnUrl: %s", returnUrl)
+	if returnUrl == "" || returnUrl == "/" || returnUrl == "/#/" || returnUrl == "#/" {
+		returnUrl = defaultUrl
+	}
+
+	//认证失败的处理
+	if cookieAuth.Extend.IsJson {
+		result.JsonResult(ctx, errorResult).Render()
+	} else {
+		redirectUrl := fmt.Sprintf("%s?returnurl=%s", logonUrl, glib.UrlEncode(returnUrl))
+		result.RedirectResult(ctx, redirectUrl).Render()
+	}
+	ctx.Abort()
+	return
 }
