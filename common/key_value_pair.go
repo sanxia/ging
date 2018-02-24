@@ -1,15 +1,13 @@
-package gzip
-
-import (
-	"github.com/gin-gonic/gin"
-)
+package common
 
 /* ================================================================================
- * Gzip中间件模块
+ * 键值对数据域结构
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
-func GzipMiddleware() gin.HandlerFunc {
-	return Gzip(BestSpeed)
+type KeyValuePairList []*KeyValuePair
+type KeyValuePair struct {
+	Key   string `form:"key" json:"key"`
+	Value string `form:"value" json:"value"`
 }

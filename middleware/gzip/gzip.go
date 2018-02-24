@@ -11,6 +11,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+/* ================================================================================
+ * Gzip处理
+ * qq group: 582452342
+ * email   : 2091938785@qq.com
+ * author  : 美丽的地球啊 - mliu
+ * ================================================================================ */
+
 const (
 	BestCompression    = gzip.BestCompression
 	BestSpeed          = gzip.BestSpeed
@@ -18,12 +25,6 @@ const (
 	NoCompression      = gzip.NoCompression
 )
 
-/* ================================================================================
- * Gzip处理
- * qq group: 582452342
- * email   : 2091938785@qq.com
- * author  : 美丽的地球啊
- * ================================================================================ */
 func Gzip(level int) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !shouldCompress(c.Request) {

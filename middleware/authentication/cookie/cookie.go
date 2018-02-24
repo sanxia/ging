@@ -22,7 +22,7 @@ import (
  * Cookie认证模块
  * qq group: 582452342
  * email   : 2091938785@qq.com
- * author  : 美丽的地球啊
+ * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
 	fnValidate           func(ctx *gin.Context, extend CookieExtend, userIdentity *ging.UserIdentity) bool

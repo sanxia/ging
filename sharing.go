@@ -1,15 +1,14 @@
-package gzip
-
-import (
-	"github.com/gin-gonic/gin"
-)
+package ging
 
 /* ================================================================================
- * Gzip中间件模块
+ * 分片数据域结构
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
-func GzipMiddleware() gin.HandlerFunc {
-	return Gzip(BestSpeed)
-}
+type (
+	ISharing interface {
+		GetDbKey() string
+		GetTableKey() string
+	}
+)

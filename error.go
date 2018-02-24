@@ -1,15 +1,16 @@
-package gzip
-
-import (
-	"github.com/gin-gonic/gin"
-)
+package ging
 
 /* ================================================================================
- * Gzip中间件模块
+ * 错误数据域结构
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
-func GzipMiddleware() gin.HandlerFunc {
-	return Gzip(BestSpeed)
+type CustomError struct {
+	Code int32
+	Msg  string
+}
+
+func (err CustomError) Error() string {
+	return err.Msg
 }

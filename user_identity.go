@@ -15,7 +15,7 @@ import (
  * 用户身份标识数据结构
  * qq group: 582452342
  * email   : 2091938785@qq.com
- * author  : 美丽的地球啊
+ * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 const (
 	UserIdentityKey string = "__ging_u_id__"
