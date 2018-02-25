@@ -1,7 +1,7 @@
 package ging
 
 /* ================================================================================
- * 数据设置
+ * 设置数据域结构
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -15,7 +15,7 @@ type (
 		Forms        FormsOption        //表单
 		Session      SessionOption      //会话
 		Redis        RedisOption        //Redis
-		Databases    DatabaseOptionList //数据库
+		Database     DatabaseOption     //数据库
 		Security     SecurityOption     //安全
 		Pay          PayOption          //支付
 		ValidateCode ValidateCodeOption //验证码
@@ -158,13 +158,18 @@ type (
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	 * 数据库选项
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-	DatabaseOptionList []*DatabaseOption
-	DatabaseOption     struct {
+	DatabaseOption struct {
+		Connections []*DatabaseConnectionOption
+		IsLog       bool
+	}
+
+	DatabaseConnectionOption struct {
 		Key      string
 		Username string
 		Password string
 		Host     string
 		Database string
+		Dialect  string
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
