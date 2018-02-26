@@ -123,7 +123,6 @@ func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (cookieAuth *CookieAuthentication) Validation() gin.HandlerFunc {
 	currentUserIdentity := ging.UserIdentity{
-		UserId:          0,
 		IsAuthenticated: false,
 	}
 
@@ -152,11 +151,10 @@ func (cookieAuth *CookieAuthentication) Validation() gin.HandlerFunc {
 				if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err == nil {
 					currentUserIdentity = *userIdentity
 					log.Println("authentication url pass currentUserIdentity: %v", currentUserIdentity)
-					if userIdentity.UserId > 0 {
+					if len(userIdentity.UserId) > 0 {
 						currentUserIdentity.IsAuthenticated = true
 					}
 				} else {
-					currentUserIdentity.UserId = 0
 					currentUserIdentity.IsAuthenticated = false
 				}
 			}
@@ -231,8 +229,8 @@ func (cookieAuth *CookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool 
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (cookieAuth *CookieAuthentication) errorHandler(ctx *gin.Context) {
 	errorResult := map[string]interface{}{
-		"Code": 299,
-		"Msg":  "用户未认证",
+		"Code": 199,
+		"Msg":  "身份未认证",
 		"Data": nil,
 	}
 	logonUrl := cookieAuth.Extend.LogonUrl

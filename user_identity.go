@@ -22,7 +22,7 @@ const (
 )
 
 type UserIdentity struct {
-	UserId          uint64 //用户id
+	UserId          string //用户id
 	Username        string //用户名
 	Nickname        string //用户昵称
 	Avatar          string //用户图像
