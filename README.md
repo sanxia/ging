@@ -1,4 +1,7 @@
 # ging
+--------------
 gin micro web framework extending
-auth: mliu
-date: 20170501
+
+auth: 美丽的地球啊 - mliu
+
+date: 20161001
