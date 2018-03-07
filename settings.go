@@ -15,6 +15,7 @@ type (
 		Forms        FormsOption        //表单
 		Session      SessionOption      //会话
 		Redis        RedisOption        //Redis
+		MessageQueue MessageQueueOption //消息队列
 		Database     DatabaseOption     //数据库
 		Security     SecurityOption     //安全
 		Pay          PayOption          //支付
@@ -153,6 +154,24 @@ type (
 		Port     int
 		Password string
 		Timeout  int
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * MessageQueue选项
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	MessageQueueOption struct {
+		Server MessageQueueServerOption
+		VHost  string //主机
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * 消息服务器选项
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	MessageQueueServerOption struct {
+		Host     string
+		Port     int
+		Username string
+		Password string
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
