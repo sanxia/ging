@@ -12,9 +12,17 @@ import (
  * ================================================================================ */
 type (
 	Message struct {
-		Payload   string //消息内容
-		Type      string //类型码
-		Timestamp int64  //unix时间戳，单位秒
+		Payload   *MessagePayload //消息内容
+		Type      string          //类型码
+		Timestamp int64           //unix时间戳，单位秒
+	}
+
+	//消息载荷
+	MessagePayload struct {
+		UserId   string //用户id
+		TargetId string //目标id
+		Action   string //动作
+		Extend   string //扩展信息
 	}
 )
 
