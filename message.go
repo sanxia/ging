@@ -11,22 +11,27 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
+	ITaskCenter interface {
+		Register(name string, task ITask) error
+		Start()
+	}
+
 	ITask interface {
 		Run(settings *Settings)
 	}
 
 	Message struct {
-		Payload   *MessagePayload //消息内容
-		Type      string          //类型码
-		Timestamp int64           //unix时间戳，单位秒
+		Payload   *MessagePayload `form:"payload" json:"payload"`     //消息内容
+		Type      string          `form:"type" json:"type"`           //类型码
+		Timestamp int64           `form:"timestamp" json:"timestamp"` //unix时间戳，单位秒
 	}
 
 	//消息载荷
 	MessagePayload struct {
-		UserId   string //用户id
-		TargetId string //目标id
-		Code     string //自定义编码
-		Extend   string //扩展信息
+		UserId   string `form:"user_id" json:"user_id"`     //用户id
+		TargetId string `form:"target_id" json:"target_id"` //目标id
+		Code     string `form:"code" json:"code"`           //自定义编码
+		Extend   string `form:"extend" json:"extend"`       //扩展信息
 	}
 )
 
