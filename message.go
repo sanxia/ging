@@ -11,6 +11,10 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
+	ITask interface {
+		Run(settings *Settings)
+	}
+
 	Message struct {
 		Payload   *MessagePayload //消息内容
 		Type      string          //类型码
@@ -21,7 +25,7 @@ type (
 	MessagePayload struct {
 		UserId   string //用户id
 		TargetId string //目标id
-		Action   string //动作
+		Code     string //自定义编码
 		Extend   string //扩展信息
 	}
 )
