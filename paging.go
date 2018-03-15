@@ -12,12 +12,13 @@ import (
  * ================================================================================ */
 type (
 	Paging struct {
-		PagingIndex int64  `form:"paging_index" json:"paging_index"`
-		PagingSize  int64  `form:"paging_size" json:"paging_size"`
-		TotalRecord int64  `form:"total_record" json:"total_record"`
-		PagingCount int64  `form:"paging_count" json:"paging_count"`
-		Sortorder   string `form:"sortorder" json:"-"`
-		Group       string `form:"group" json:"-"`
+		PagingIndex int64  `form:"paging_index" json:"paging_index"` //当前页索引
+		PagingSize  int64  `form:"paging_size" json:"paging_size"`   //每页大小
+		TotalRecord int64  `form:"total_record" json:"total_record"` //总记录数
+		PagingCount int64  `form:"paging_count" json:"paging_count"` //总页数
+		Sortorder   string `form:"sortorder" json:"-"`               //排序
+		Group       string `form:"group" json:"-"`                   //分组
+		IsTotalOnce bool   `form:"-" json:"-"`                       //是否只在第一页计算总记录数（默认每次都计算）
 	}
 )
 
