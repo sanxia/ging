@@ -22,6 +22,7 @@ type (
 		ValidateCode ValidateCodeOption //验证码
 		Mail         MailOption         //邮件
 		Sms          SmsOption          //短信
+		Im           ImOption           //即时通信
 		Storage      StorageOption      //存储
 		Cors         CorsOption         //跨域
 		Test         TestOption         //测试
@@ -302,6 +303,18 @@ type (
 		Port     int32  //Smtp端口
 		Username string //发送邮件用户明
 		Password string //发送邮件密码
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * 即时通信选项
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	ImOption struct {
+		OrgName      string //机构名
+		AppName      string //应用名
+		ClientId     string //client id
+		ClientSecret string //client secret
+		Host         string //主机地址
+		IsEnabled    bool   //是否启用
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
