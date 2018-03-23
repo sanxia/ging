@@ -48,6 +48,7 @@ type (
 		Domain   string
 		MaxAge   int
 		HttpOnly bool
+		Secure   bool
 	}
 )
 
@@ -85,6 +86,7 @@ func (cookieAuth *CookieAuthentication) Logon(ctx *gin.Context, userIdentity *gi
 		Path:     path,
 		Domain:   cookieAuth.Extend.Option.Domain,
 		HttpOnly: cookieAuth.Extend.Option.HttpOnly,
+		Secure:   cookieAuth.Extend.Option.Secure,
 	}
 
 	if isRemember {
@@ -109,11 +111,13 @@ func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) {
 
 	//删除cookie
 	httpCookie := http.Cookie{
-		Name:   cookieAuth.Extend.Option.Name,
-		Value:  "",
-		MaxAge: -1,
-		Path:   path,
-		Domain: cookieAuth.Extend.Option.Domain,
+		Name:     cookieAuth.Extend.Option.Name,
+		Value:    "",
+		MaxAge:   -1,
+		Path:     path,
+		Domain:   cookieAuth.Extend.Option.Domain,
+		HttpOnly: cookieAuth.Extend.Option.HttpOnly,
+		Secure:   cookieAuth.Extend.Option.Secure,
 	}
 	http.SetCookie(ctx.Writer, &httpCookie)
 }

@@ -127,8 +127,8 @@ type (
 		Path     string //客户端Cookie路径
 		Domain   string //客户端Cookie域
 		MaxAge   int    //过期时长（单位：秒）
-		Secure   bool
-		HttpOnly bool
+		HttpOnly bool   //是否只能http读取
+		Secure   bool   //是否https
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
