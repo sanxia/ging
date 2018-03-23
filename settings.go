@@ -8,6 +8,7 @@ package ging
  * ================================================================================ */
 type (
 	Settings struct {
+		AppName      string             //应用名称
 		Server       ServerOption       //服务器
 		Domain       DomainOption       //域名
 		Image        ImageOption        //图像
