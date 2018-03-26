@@ -144,8 +144,9 @@ type (
 	 * Redis选项
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	RedisOption struct {
-		PrefixKey string
-		Stores    []RedisStoreOption
+		Prefix string //key前缀
+		Stores []RedisStoreOption
+		Expire int //多少秒后过期
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

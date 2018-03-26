@@ -37,10 +37,10 @@ type SessionCookieOption struct {
 }
 
 type SessionRedisOption struct {
-	Host      string
-	Port      int
-	Password  string
-	PrefixKey string
+	Host     string
+	Port     int
+	Password string
+	Prefix   string
 }
 
 func SessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
@@ -79,7 +79,7 @@ func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
 		sessionOption.Redis.Host,
 		sessionOption.Redis.Port,
 		sessionOption.Redis.Password,
-		sessionOption.Redis.PrefixKey,
+		sessionOption.Redis.Prefix,
 		[]byte(sessionOption.EncryptKey),
 	)
 
