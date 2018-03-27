@@ -29,6 +29,7 @@ type (
 		Test         TestOption         //测试
 		Log          LogOption          //日志
 		Version      VersionOption      //版本
+		IsCache      bool               //是否启用缓存
 		IsHttps      bool               //是否https
 		IsOnline     bool               //是否线上
 	}
