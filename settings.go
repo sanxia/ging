@@ -23,6 +23,7 @@ type (
 		ValidateCode ValidateCodeOption //验证码
 		Mail         MailOption         //邮件
 		Sms          SmsOption          //短信
+		AliyunSms    SmsOption          //阿里云短信
 		Im           ImOption           //即时通信
 		Storage      StorageOption      //存储
 		Cors         CorsOption         //跨域
@@ -268,6 +269,7 @@ type (
 		Template       SmsTemplateOption
 		MaxMobileCount int
 		MaxCodeLength  int
+		RegionId       string
 		Format         string
 		Type           string
 		SignName       string
