@@ -32,6 +32,7 @@ type (
 		Version      VersionOption      //版本
 		IsCache      bool               //是否启用缓存
 		IsHttps      bool               //是否https
+		IsTesting    bool               //是否测试
 		IsOnline     bool               //是否线上
 	}
 
