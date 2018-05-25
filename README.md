@@ -49,9 +49,11 @@ func parseApplication() (*ging.Settings, ging.IHttpRouter) {
 
     flag.Parse()
 
+
     //App名称
 
     appName := *appNameFlag
+    
 
     //App设置
     appSettingsList := map[string]*ging.Settings{
