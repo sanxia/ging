@@ -26,7 +26,7 @@ func main() {
     //引导器初始化
 
     Bootstrap(appSettings)
-    
+
 
     //启动服务器
 
@@ -120,6 +120,7 @@ func parseApplication() (*ging.Settings, ging.IHttpRouter) {
 package myapp
 
 import (
+
     "github.com/gin-gonic/gin"
 
     "github.com/sanxia/ging"
