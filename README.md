@@ -35,14 +35,11 @@ func main() {
     ging.Start(serverOption, appRouter)
 }
 
-/* ++++++++++++++++++++++++++++
- * 解析应用程序设置和路由
- * ++++++++++++++++++++++++++++ */
- 
+
 func parseApplication() (*ging.Settings, ging.IHttpRouter) {
 
     //解析参数
-    
+
     appNameFlag := flag.String("app", "", "请输入App名称")
 
     appHostFlag := flag.String("host", "", "请输入绑定Ip")
