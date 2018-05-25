@@ -14,7 +14,7 @@ date: 20161001
 func main() {
 
     //解析参数
-    
+
     appSettings, appRouter := parseApplication()
 
     if appSettings == nil || appRouter == nil {
@@ -26,6 +26,7 @@ func main() {
     //引导器初始化
 
     Bootstrap(appSettings)
+    
 
     //启动服务器
 
