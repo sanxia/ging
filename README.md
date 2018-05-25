@@ -12,7 +12,9 @@ date: 20161001
 +++++ main.go +++++
 
 func main() {
+
     //解析参数
+    
     appSettings, appRouter := parseApplication()
 
     if appSettings == nil || appRouter == nil {
@@ -53,7 +55,7 @@ func parseApplication() (*ging.Settings, ging.IHttpRouter) {
     //App名称
 
     appName := *appNameFlag
-    
+
 
     //App设置
     appSettingsList := map[string]*ging.Settings{
