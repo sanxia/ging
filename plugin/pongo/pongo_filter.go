@@ -33,6 +33,10 @@ import (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func init() {
 	//custom
+
+	pongo2.RegisterFilter("sxcontains", filterContains)
+	pongo2.RegisterFilter("sxcontainsany", filterContainsAny)
+	pongo2.RegisterFilter("sxcontainsall", filterContainsAll)
 	pongo2.RegisterFilter("sxhtmlencode", filterHtmlEncode)
 	pongo2.RegisterFilter("sxhtml", filterHtmlDecode)
 	pongo2.RegisterFilter("sxbr", filterLine2Br)
@@ -82,6 +86,116 @@ func filterHtmlDecode(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *po
 func filterLine2Br(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	newString := glib.String2Br(in.String())
 	return pongo2.AsSafeValue(newString), nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 是否包含一个
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterContains(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	inStringSlice := make([]string, 0)
+	paramString := ""
+	isContains := false
+
+	if inInter := in.Interface(); inInter != nil {
+		if inSlice, isOk := inInter.([]string); isOk {
+			inStringSlice = inSlice
+		}
+	}
+
+	if inputInter := param.Interface(); inputInter != nil {
+		if inputValue, isOk := inputInter.(string); isOk {
+			paramString = inputValue
+		}
+	}
+
+	for _, inItemString := range inStringSlice {
+		if strings.ToLower(inItemString) == strings.ToLower(paramString) {
+			isContains = true
+			break
+		}
+	}
+
+	return pongo2.AsSafeValue(isContains), nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 是否包含任意一个
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterContainsAny(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	inStringSlice := make([]string, 0)
+	paramStringSlice := make([]string, 0)
+	isContains := false
+
+	if inInter := in.Interface(); inInter != nil {
+		if inSlice, isOk := inInter.([]string); isOk {
+			inStringSlice = inSlice
+		}
+	}
+
+	if paramInter := param.Interface(); paramInter != nil {
+		if paramString, isOk := paramInter.(string); isOk {
+			paramStringSlice = strings.Split(paramString, ",")
+		}
+	}
+
+	for _, paramItemString := range paramStringSlice {
+		isFind := false
+
+		paramItemString = strings.ToLower(paramItemString)
+		for _, inItemString := range inStringSlice {
+			if paramItemString == strings.ToLower(inItemString) {
+				isFind = true
+				break
+			}
+		}
+
+		if isFind {
+			isContains = true
+			break
+		}
+	}
+
+	return pongo2.AsSafeValue(isContains), nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 是否全部都包含
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func filterContainsAll(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	inStringSlice := make([]string, 0)
+	paramStringSlice := make([]string, 0)
+	isContains := true
+
+	if inInter := in.Interface(); inInter != nil {
+		if inSlice, isOk := inInter.([]string); isOk {
+			inStringSlice = inSlice
+		}
+	}
+
+	if paramInter := param.Interface(); paramInter != nil {
+		if paramString, isOk := paramInter.(string); isOk {
+			paramStringSlice = strings.Split(paramString, ",")
+		}
+	}
+
+	for _, paramItemString := range paramStringSlice {
+		isFind := false
+
+		paramItemString = strings.ToLower(paramItemString)
+		for _, inItemString := range inStringSlice {
+			if paramItemString == strings.ToLower(inItemString) {
+				isFind = true
+				break
+			}
+		}
+
+		if !isFind {
+			isContains = false
+			break
+		}
+	}
+
+	return pongo2.AsSafeValue(isContains), nil
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

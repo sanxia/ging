@@ -22,13 +22,14 @@ const (
 )
 
 type UserIdentity struct {
-	UserId          string //用户id
-	Username        string //用户名
-	Nickname        string //用户昵称
-	Avatar          string //用户图像
-	Role            string //角色名（多个之间用逗号分隔）
-	Expires         int64  //过期时间（距离1970-1-1的秒数）
-	IsAuthenticated bool   //是否已验证
+	UserId          string      //用户id
+	Username        string      //用户名
+	Nickname        string      //用户昵称
+	Avatar          string      //用户图像
+	Role            string      //角色名（多个之间用逗号分隔）
+	Extend          interface{} //扩展数据
+	Expires         int64       //过期时间（距离1970-1-1的秒数）
+	IsAuthenticated bool        //是否已验证
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
