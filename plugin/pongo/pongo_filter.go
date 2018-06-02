@@ -33,7 +33,6 @@ import (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func init() {
 	//custom
-
 	pongo2.RegisterFilter("sxcontains", filterContains)
 	pongo2.RegisterFilter("sxcontainsany", filterContainsAny)
 	pongo2.RegisterFilter("sxcontainsall", filterContainsAll)
@@ -203,7 +202,7 @@ func filterContainsAll(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *p
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func filterThumbImage(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	sourceString := in.String()
-	if sourceString == "" || !strings.Contains(sourceString, "img.woshiyiren.com") {
+	if sourceString == "" || !strings.Contains(sourceString, "img.test.com") {
 		return pongo2.AsSafeValue(sourceString), nil
 	}
 
@@ -239,7 +238,7 @@ func filterUserDomain(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *po
 		username = userId
 	}
 
-	domain := "http://www.woshiyiren.com/" + username
+	domain := "http://a.test.com/" + username
 
 	return pongo2.AsSafeValue(domain), nil
 }
