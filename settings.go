@@ -26,6 +26,7 @@ type (
 		AliyunSms    SmsOption          //阿里云短信
 		Im           ImOption           //即时通信
 		Storage      StorageOption      //存储
+		Search       SearchOption       //搜索
 		Cors         CorsOption         //跨域
 		Test         TestOption         //测试
 		Log          LogOption          //日志
@@ -375,6 +376,16 @@ type (
 		Audios []string
 		Videos []string
 		Files  []string
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * 搜索选项
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	SearchOption struct {
+		Host             string //主机
+		NumberOfShards   int    //分片数
+		NumberOfReplicas int    //复制数
+		IsEnabled        bool   //是否开启搜索
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
