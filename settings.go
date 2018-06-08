@@ -382,10 +382,11 @@ type (
 	 * 搜索选项
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	SearchOption struct {
-		Hosts            []string //主机
-		NumberOfShards   int      //分片数
-		NumberOfReplicas int      //复制数
-		IsEnabled        bool     //是否开启搜索
+		Hosts               []string //主机
+		NumberOfShards      int      //分片数
+		NumberOfReplicas    int      //复制数
+		HealthcheckInterval int      //健康检测间隔，单位秒
+		IsEnabled           bool     //是否开启搜索
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
