@@ -383,6 +383,7 @@ type (
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	SearchOption struct {
 		Hosts               []string //主机
+		DefaultAnalyzer     string   //默认分词器名称
 		NumberOfShards      int      //分片数
 		NumberOfReplicas    int      //复制数
 		HealthcheckInterval int      //健康检测间隔，单位秒
