@@ -1,4 +1,4 @@
-package ging
+package message
 
 import (
 	"github.com/sanxia/glib"
@@ -11,15 +11,6 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
-	ITaskCenter interface {
-		Register(name string, task ITask) error
-		Start()
-	}
-
-	ITask interface {
-		Run(settings *Settings)
-	}
-
 	Message struct {
 		Payload   *MessagePayload `form:"payload" json:"payload"`     //消息内容
 		Type      string          `form:"type" json:"type"`           //类型码
