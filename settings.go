@@ -35,6 +35,7 @@ type (
 		IsHttps      bool               //是否https
 		IsTesting    bool               //是否测试
 		IsOnline     bool               //是否线上
+		IsDebug      bool               //是否调试模式
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

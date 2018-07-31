@@ -34,14 +34,18 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 实例化HttpEngine
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewHttpEngine(templatePath string, args ...string) IHttpEngine {
-	switch args[0] {
-	case "debug":
+func NewHttpEngine(templatePath string, model string, isDebug bool) IHttpEngine {
+	if isDebug {
 		gin.SetMode(gin.DebugMode)
-	case "release":
-		gin.SetMode(gin.ReleaseMode)
-	default:
-		gin.SetMode(gin.TestMode)
+	} else {
+		switch model {
+		case "debug":
+			gin.SetMode(gin.DebugMode)
+		case "release":
+			gin.SetMode(gin.ReleaseMode)
+		default:
+			gin.SetMode(gin.TestMode)
+		}
 	}
 
 	//初始化httpEngine
