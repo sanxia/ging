@@ -47,12 +47,14 @@ func init() {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Start(serverOption *ServerOption, router IHttpRouter) {
 	fmt.Printf("%v ging start\n", time.Now())
+
 	//Routines
 	for index, port := range serverOption.Ports {
 		host := "127.0.0.1"
 		if len(serverOption.Host) > 0 {
 			host = serverOption.Host
 		}
+
 		if port == 0 {
 			port = 80
 		}
@@ -77,6 +79,7 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
 	for {
 		pending := fmt.Sprintf("%v ging server Running ...", time.Now())
 		log.Println(pending)
+
 		time.Sleep(12 * time.Hour)
 	}
 }

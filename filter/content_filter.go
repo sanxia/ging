@@ -1,12 +1,6 @@
 package filter
 
 import (
-	"fmt"
-	"log"
-	"time"
-)
-
-import (
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,31 +9,37 @@ import (
 )
 
 /* ================================================================================
- * 日期过滤器
+ * 内容过滤器
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
-type datetimeFilter struct {
-	Filter
-	beginDate time.Time
-	endDate   time.Time
+type contentFilter struct {
+	ging.Filter
+	header string
+	footer string
 }
 
-func DatetimeFilter(args ...string) ging.IActionFilter {
-	return &datetimeFilter{
-		Filter: Filter{
-			Name: "datetime_filter",
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 实例化内容过滤器
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func NewContentFilter(header, footer string) ging.IActionFilter {
+	return &contentFilter{
+		Filter: ging.Filter{
+			Name: "content_filter",
 		},
+		header: header,
+		footer: footer,
 	}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 动作执行之前
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *datetimeFilter) Before(ctx *gin.Context) ging.IActionResult {
-	s.beginDate = time.Now()
-	log.Printf("[%s] Before %v", s.Name, s.beginDate)
+func (s *contentFilter) Before(ctx *gin.Context) ging.IActionResult {
+	if len(s.header) > 0 {
+		ctx.Writer.Write([]byte(s.header))
+	}
 
 	return nil
 }
@@ -47,13 +47,10 @@ func (s *datetimeFilter) Before(ctx *gin.Context) ging.IActionResult {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 动作执行之后
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *datetimeFilter) After(ctx *gin.Context) {
+func (s *contentFilter) After(ctx *gin.Context) {
 	if !ctx.IsAborted() {
-		s.endDate = time.Now()
-		nanoseconds := s.endDate.Sub(s.beginDate).Nanoseconds()
-		msg := fmt.Sprintf("[%s] After total time: %v", s.Name, nanoseconds)
-
-		ctx.Writer.Write([]byte(msg))
+		if len(s.footer) > 0 {
+			ctx.Writer.Write([]byte(s.footer))
+		}
 	}
-
 }

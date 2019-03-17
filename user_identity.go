@@ -1,6 +1,10 @@
 package ging
 
 import (
+	"github.com/gin-gonic/gin"
+)
+
+import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -30,6 +34,22 @@ type UserIdentity struct {
 	Extend          interface{} //扩展数据
 	Expires         int64       //过期时间（距离1970-1-1的秒数）
 	IsAuthenticated bool        //是否已验证
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取用户标识
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func GetUserIdentity(ctx *gin.Context) *UserIdentity {
+	var userIdentity *UserIdentity
+
+	if ctx != nil {
+		if identity, ok := ctx.Get(UserIdentityKey); ok {
+			user := identity.(UserIdentity)
+			userIdentity = &user
+		}
+	}
+
+	return userIdentity
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -104,7 +104,7 @@ type (
 	FormsRegisterOption struct {
 		UsernameRule       string   //用户名正则表达式
 		PasswordRule       string   //密码正则表达式
-		ForbiddenUsers     []string //禁止注册的用户名集合
+		ForbiddenUsernames []string //禁止注册的用户名集合
 		ForbiddenPasswords []string //禁止使用的密码集合
 		IsApproved         bool     //是否需要审核
 		IsActived          bool     //是否需要激活

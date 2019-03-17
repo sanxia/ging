@@ -12,6 +12,7 @@ import (
 
 import (
 	"github.com/sanxia/ging"
+	"github.com/sanxia/ging/result"
 	"github.com/sanxia/ging/util"
 )
 
@@ -22,7 +23,7 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type authorizationFilter struct {
-	Filter
+	ging.Filter
 	AuthorizationOption
 }
 
@@ -32,9 +33,12 @@ type AuthorizationOption struct {
 	AuthUrl       string
 }
 
-func AuthorizationFilter(authorizationOption *AuthorizationOption) IActionFilter {
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 实例化授权过滤器
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func NewAuthorizationFilter(authorizationOption *AuthorizationOption) ging.IActionFilter {
 	return &authorizationFilter{
-		Filter: Filter{
+		Filter: ging.Filter{
 			Name: "authorization",
 		},
 		AuthorizationOption: AuthorizationOption{
@@ -48,11 +52,11 @@ func AuthorizationFilter(authorizationOption *AuthorizationOption) IActionFilter
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 动作执行之前
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *authorizationFilter) Before(ctx *gin.Context) result.IActionResult {
+func (s *authorizationFilter) Before(ctx *gin.Context) ging.IActionResult {
 	log.Printf("[%s] Before %v", s.Name, time.Now())
 
-	requestUrl := ctx.Request.URL.RequestURI()
 	var actionResult ging.IActionResult
+
 	var userIdentity *ging.UserIdentity
 	if identity, isOk := ctx.Get(ging.UserIdentityKey); isOk {
 		user := identity.(ging.UserIdentity)
@@ -60,23 +64,38 @@ func (s *authorizationFilter) Before(ctx *gin.Context) result.IActionResult {
 	}
 
 	//跳转到登录地址
+	requestUrl := ctx.Request.URL.RequestURI()
+
 	authUrl := s.AuthUrl
 	authUrl += "?returnurl=" + url.QueryEscape(requestUrl)
+	isJson := len(s.AuthUrl) == 0
+
 	if userIdentity != nil {
-		//Authorization优先于Role
 		if s.Authorization != nil {
 			authorization := *s.Authorization
 			if !authorization(userIdentity) {
-				actionResult = result.RedirectResult(ctx, authUrl)
+				if isJson {
+					actionResult = getJsonResult(ctx, ging.NewError(198, "操作权限未被许可"))
+				} else {
+					actionResult = result.RedirectResult(ctx, authUrl)
+				}
 			}
 		} else {
 			isInRole := util.IsInRole(userIdentity.Role, s.Role)
 			if !isInRole {
-				actionResult = result.RedirectResult(ctx, authUrl)
+				if isJson {
+					actionResult = getJsonResult(ctx, ging.NewError(198, "操作权限未被许可"))
+				} else {
+					actionResult = result.RedirectResult(ctx, authUrl)
+				}
 			}
 		}
 	} else {
-		actionResult = result.RedirectResult(ctx, authUrl)
+		if isJson {
+			actionResult = getJsonResult(ctx, ging.NewError(199, "用户未认证"))
+		} else {
+			actionResult = result.RedirectResult(ctx, authUrl)
+		}
 	}
 
 	return actionResult
@@ -87,4 +106,13 @@ func (s *authorizationFilter) Before(ctx *gin.Context) result.IActionResult {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *authorizationFilter) After(ctx *gin.Context) {
 	log.Printf("[%s] After %v", s.Name, time.Now())
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取json结果
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func getJsonResult(ctx *gin.Context, err *ging.CustomError) ging.IActionResult {
+	jsonResult := new(ging.Result)
+	jsonResult.SetError(err)
+	return result.JsonResult(ctx, jsonResult, true)
 }
