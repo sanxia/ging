@@ -7,7 +7,7 @@ import (
 import (
 	"github.com/sanxia/ging"
 	"github.com/sanxia/ging/result"
-	"github.com/sanxia/ging/util"
+	"github.com/sanxia/glib"
 )
 
 /* ================================================================================
@@ -36,12 +36,7 @@ func CookieAuthenticationMiddleware(extend CookieExtend) gin.HandlerFunc {
 
 	if err != nil {
 		return func(ctx *gin.Context) {
-			errorResult := map[string]interface{}{
-				"Code": 111,
-				"Msg":  "参数错误",
-				"Data": nil,
-			}
-			viewResult := result.JsonResult(ctx, errorResult)
+			viewResult := result.JsonResult(ctx, ging.NewError(111, "参数错误"))
 			viewResult.Render()
 
 			ctx.Abort()
@@ -56,13 +51,15 @@ func CookieAuthenticationMiddleware(extend CookieExtend) gin.HandlerFunc {
  * 自定义验证扩展点
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func customValidate(ctx *gin.Context, extend CookieExtend, userIdentity *ging.UserIdentity) bool {
-	//用户角色是否匹配
+	isInRole := true
+
 	if len(extend.Role) > 0 {
-		isInRole := util.IsInRole(userIdentity.Role, extend.Role)
-		return isInRole
+		//角色交集合
+		roles := glib.StringInter(glib.StringToStringSlice(userIdentity.Role), glib.StringToStringSlice(extend.Role))
+		isInRole = len(roles) > 0
 	}
 
-	return true
+	return isInRole
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -115,7 +115,7 @@ type (
 	 * 表单认证
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	FormsAuthenticationOption struct {
-		LogonUrl        string             //登陆认证Url
+		AuthorizeUrl    string             //身份授权Url
 		DefaultUrl      string             //默认返回地址
 		PassUrls        []string           //无需认证Url集合
 		Cookie          *FormsCookieOption //form cookie

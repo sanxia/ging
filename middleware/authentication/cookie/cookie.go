@@ -32,14 +32,13 @@ type (
 	}
 
 	CookieExtend struct {
-		Option     *CookieOption //forms cookie
-		Role       string        //角色（多个之间用逗号分隔）
-		LogonUrl   string        //认证url
-		DefaultUrl string        //认证通过默认返回url
-		PassUrls   []string      //直接通过的url
-		EncryptKey string        //加密key
-		IsJson     bool          //是否json响应
-		IsEnabled  bool          //是否启用验证
+		Option       *CookieOption //forms cookie
+		Role         string        //角色（多个之间用逗号分隔）
+		AuthorizeUrl string        //身份授权url
+		DefaultUrl   string        //认证通过默认返回url
+		PassUrls     []string      //直接通过的url
+		EncryptKey   string        //加密key
+		IsEnabled    bool          //是否启用验证
 	}
 
 	CookieOption struct {
@@ -132,7 +131,7 @@ func (cookieAuth *CookieAuthentication) Validation() gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
 		//允许指定模式的Url跳过验证
-		isPass := strings.HasPrefix(ctx.Request.URL.Path, cookieAuth.Extend.LogonUrl)
+		isPass := strings.HasPrefix(ctx.Request.URL.Path, cookieAuth.Extend.AuthorizeUrl)
 		if !isPass {
 			for _, passUrl := range cookieAuth.Extend.PassUrls {
 				isPass = strings.HasPrefix(ctx.Request.URL.Path, passUrl)
@@ -212,7 +211,7 @@ func (cookieAuth *CookieAuthentication) parseUserIdentity(ctx *gin.Context) (*gi
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (cookieAuth *CookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
 	isReturnUrl := false
-	if ctx.Request.URL.Path == cookieAuth.Extend.LogonUrl {
+	if ctx.Request.URL.Path == cookieAuth.Extend.AuthorizeUrl {
 		returnUrl := ctx.DefaultQuery("returnurl", "")
 		if returnUrl == "" {
 			redirectUrl := fmt.Sprintf("%s?returnurl=%s", ctx.Request.URL.Path, glib.UrlEncode(cookieAuth.Extend.DefaultUrl))
@@ -232,27 +231,20 @@ func (cookieAuth *CookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool 
  * 错误处理
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (cookieAuth *CookieAuthentication) errorHandler(ctx *gin.Context) {
-	errorResult := map[string]interface{}{
-		"Code": 199,
-		"Msg":  "身份未认证",
-		"Data": nil,
-	}
-	logonUrl := cookieAuth.Extend.LogonUrl
-	defaultUrl := cookieAuth.Extend.DefaultUrl
 	returnUrl := ctx.Request.URL.RequestURI()
-
-	log.Printf("errorHandler returnUrl: %s", returnUrl)
 	if returnUrl == "" || returnUrl == "/" || returnUrl == "/#/" || returnUrl == "#/" {
-		returnUrl = defaultUrl
+		returnUrl = ctx.Request.URL.RequestURI()
 	}
 
 	//认证失败的处理
-	if cookieAuth.Extend.IsJson {
-		result.JsonResult(ctx, errorResult).Render()
+	if ging.IsAjax(ctx) {
+		result.JsonResult(ctx, ging.NewError(199, "身份未认证")).Render()
 	} else {
-		redirectUrl := fmt.Sprintf("%s?returnurl=%s", logonUrl, glib.UrlEncode(returnUrl))
+		redirectUrl := fmt.Sprintf("%s?returnurl=%s", cookieAuth.Extend.AuthorizeUrl, glib.UrlEncode(returnUrl))
 		result.RedirectResult(ctx, redirectUrl).Render()
 	}
+
 	ctx.Abort()
+
 	return
 }

@@ -25,7 +25,6 @@ var (
  * extend: Token扩展数据
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func TokenAuthenticationMiddleware(extend TokenExtend) gin.HandlerFunc {
-	//初始化Token验证
 	var err error
 	tokenAuth, err = NewTokenAuthentication(TokenAuthentication{
 		Extend: extend,
@@ -36,12 +35,7 @@ func TokenAuthenticationMiddleware(extend TokenExtend) gin.HandlerFunc {
 
 	if err != nil {
 		return func(ctx *gin.Context) {
-			errorResult := map[string]interface{}{
-				"Code": 111,
-				"Msg":  "参数错误",
-				"Data": nil,
-			}
-			viewResult := result.JsonResult(ctx, errorResult)
+			viewResult := result.JsonResult(ctx, ging.NewError(111, "参数错误"))
 			viewResult.Render()
 
 			ctx.Abort()
@@ -55,14 +49,16 @@ func TokenAuthenticationMiddleware(extend TokenExtend) gin.HandlerFunc {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 自定义验证扩展点
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func customValidate(ctx *gin.Context, tokenExtend TokenExtend, userIdentity *ging.UserIdentity) bool {
-	//用户角色是否匹配
-	if len(tokenExtend.Role) > 0 {
-		isInRole := util.IsInRole(userIdentity.Role, tokenExtend.Role)
-		return isInRole
+func customValidate(ctx *gin.Context, extend TokenExtend, userIdentity *ging.UserIdentity) bool {
+	isInRole := true
+
+	if len(extend.Role) > 0 {
+		//角色交集合
+		roles := glib.StringInter(glib.StringToStringSlice(userIdentity.Role), glib.StringToStringSlice(extend.Role))
+		isInRole = len(roles) > 0
 	}
 
-	return true
+	return isInRole
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

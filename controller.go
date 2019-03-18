@@ -51,28 +51,38 @@ type (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Action(action func(ctx *gin.Context) IActionResult, args ...interface{}) func(*gin.Context) {
 	return func(context *gin.Context) {
-		var actionFilters []IActionFilter
+		var actionFilters IActionFilterList
 		var filterResult IActionResult
 
-		isEnabled := true
 		argsCount := len(args)
+		isFilterEnabled := true
+
 		if argsCount > 0 {
-			if value, isOk := args[0].(bool); isOk {
-				isEnabled = value
-			} else {
-				for _, actionFilter := range args {
-					if actionFilter, isOk := actionFilter.(IActionFilter); isOk {
-						if len(actionFilters) == 0 {
-							actionFilters = make([]IActionFilter, argsCount)
+			for _, arg := range args {
+				if arg == nil {
+					continue
+				}
+
+				//判断是否禁用当前动作过滤器
+				if actionFilter, isOk := arg.(IActionFilter); isOk {
+					if len(actionFilters) == 0 {
+						actionFilters = make(IActionFilterList, argsCount)
+					}
+
+					actionFilters = append(actionFilters, actionFilter)
+				} else {
+					if isFilterEnabledValue, isOk := arg.(bool); isOk {
+						if !isFilterEnabledValue {
+							isFilterEnabled = false
+							break
 						}
-						actionFilters = append(actionFilters, actionFilter)
 					}
 				}
 			}
 		}
 
-		if isEnabled {
-			//动作执行之前的控制器动作过滤器
+		if isFilterEnabled {
+			//顺序执行之前的控制器过滤器
 			//Before返回非空IActionResult即终止
 			for _, filter := range ctrl.filters {
 				if filter != nil {
@@ -83,7 +93,7 @@ func (ctrl *Controller) Action(action func(ctx *gin.Context) IActionResult, args
 			}
 
 			if filterResult == nil {
-				//动作执行之前的动作过滤器
+				//顺序执行之前的动作过滤器
 				for _, filter := range actionFilters {
 					if filter != nil {
 						if filterResult = filter.Before(context); filterResult != nil {
@@ -94,27 +104,21 @@ func (ctrl *Controller) Action(action func(ctx *gin.Context) IActionResult, args
 			}
 		}
 
-		//执行过滤器
 		if filterResult != nil {
 			filterResult.Render()
 		} else {
-			//执行动作
 			action(context).Render()
 		}
 
-		if isEnabled {
-			//动作执行之后的动作过滤器
-			for _, filter := range actionFilters {
-				if filter != nil {
-					filter.After(context)
-				}
+		if isFilterEnabled {
+			//逆序执行之后的动作过滤器
+			for i := len(actionFilters) - 1; i >= 0; i-- {
+				actionFilters[i].After(context)
 			}
 
-			//动作执行之后的控制器动作过滤器
-			for _, filter := range ctrl.filters {
-				if filter != nil {
-					filter.After(context)
-				}
+			//逆序执行之后的控制器过滤器
+			for i := len(ctrl.filters) - 1; i >= 0; i-- {
+				ctrl.filters[i].After(context)
 			}
 		}
 	}
@@ -133,7 +137,9 @@ func (ctrl *Controller) Filter(filters ...IActionFilter) IController {
 	}
 
 	for _, filter := range filters {
-		ctrl.filters = append(ctrl.filters, filter)
+		if filter != nil {
+			ctrl.filters = append(ctrl.filters, filter)
+		}
 	}
 
 	return ctrl
@@ -170,7 +176,6 @@ func (ctrl *Controller) SaveSession(ctx *gin.Context, name, value string) {
 		return
 	}
 
-	//保存手机验证码
 	session := ctrl.getSession(ctx)
 	session.Set(name, strings.ToLower(value))
 	session.Save()
@@ -204,6 +209,7 @@ func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, ar
 	if len(args) > 0 {
 		isRemove = args[0]
 	}
+
 	if isRemove {
 		session.Delete(name)
 		session.Save()

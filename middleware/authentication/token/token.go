@@ -24,7 +24,7 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 const (
-	TokenName string = "Sx-Access-Token"
+	DefaultTokenName string = "__sx_token___"
 )
 
 type (
@@ -35,13 +35,12 @@ type (
 	}
 
 	TokenExtend struct {
-		Option     *TokenOption
-		Role       string   //角色（多个之间用逗号分隔）
-		LogonUrl   string   //认证url
-		PassUrls   []string //直接通过的url
-		EncryptKey string   //加密key
-		IsJson     bool     //是否json响应
-		IsEnabled  bool     //是否启用验证
+		Option       *TokenOption
+		Role         string   //角色（多个之间用逗号分隔）
+		AuthorizeUrl string   //认证url
+		PassUrls     []string //直接通过的url
+		EncryptKey   string   //加密key
+		IsEnabled    bool     //是否启用验证
 	}
 
 	TokenOption struct {
@@ -72,7 +71,7 @@ func (tokenAuth *TokenAuthentication) Validation() gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
 		//允许指定模式的Url跳过验证
-		isPass := strings.HasPrefix(ctx.Request.URL.Path, tokenAuth.Extend.LogonUrl)
+		isPass := strings.HasPrefix(ctx.Request.URL.Path, tokenAuth.Extend.AuthorizeUrl)
 		if !isPass {
 			for _, passUrl := range tokenAuth.Extend.PassUrls {
 				isPass = strings.HasPrefix(ctx.Request.URL.Path, passUrl)
@@ -140,7 +139,7 @@ func (tokenAuth *TokenAuthentication) Validation() gin.HandlerFunc {
 func (tokenAuth *TokenAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.UserIdentity, error) {
 	userIdentity := new(ging.UserIdentity)
 
-	tokenName := TokenName
+	tokenName := DefaultTokenName
 	tokenValue := ""
 
 	if tokenAuth.Extend.Option.Name != "" {
@@ -179,22 +178,21 @@ func (tokenAuth *TokenAuthentication) parseUserIdentity(ctx *gin.Context) (*ging
  * 错误处理
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (tokenAuth *TokenAuthentication) errorHandler(ctx *gin.Context) {
-	errorResult := map[string]interface{}{
-		"Code": 299,
-		"Msg":  "用户未认证",
-		"Data": nil,
-	}
-	logonUrl := tokenAuth.Extend.LogonUrl
 	requestUrl := ctx.Request.URL.RequestURI()
+	if returnUrl == "" || returnUrl == "/" || returnUrl == "/#/" || returnUrl == "#/" {
+		returnUrl = ctx.Request.URL.RequestURI()
+	}
 
 	//认证失败的处理
-	if tokenAuth.Extend.IsJson {
-		result.JsonResult(ctx, errorResult).Render()
+	if ging.IsAjax(ctx) {
+		result.JsonResult(ctx, ging.NewError(199, "身份未认证")).Render()
 	} else {
-		logonUrl += "?returnurl=" + glib.UrlEncode(requestUrl)
-		result.RedirectResult(ctx, logonUrl).Render()
+		authorizeUrl := fmt.Sprintf("%s?returnurl=%s", tokenAuth.Extend.AuthorizeUrl, glib.UrlEncode(requestUrl))
+		result.RedirectResult(ctx, authorizeUrl).Render()
 	}
+
 	ctx.Abort()
+
 	return
 }
 
@@ -218,7 +216,7 @@ func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging
 		return ""
 	}
 
-	tokenName := TokenName
+	tokenName := DefaultTokenName
 	if tokenAuth.Extend.Option.Name != "" {
 		tokenName = tokenAuth.Extend.Option.Name
 	}
@@ -232,7 +230,7 @@ func (tokenAuth *TokenAuthentication) Logon(ctx *gin.Context, userIdentity *ging
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (tokenAuth *TokenAuthentication) Logoff(ctx *gin.Context) {
-	tokenName := TokenName
+	tokenName := DefaultTokenName
 	if tokenAuth.Extend.Option.Name != "" {
 		tokenName = tokenAuth.Extend.Option.Name
 	}
