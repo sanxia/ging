@@ -31,8 +31,10 @@ func main() {
 }
 
 func parseApplication() (*ging.Settings, ging.IHttpRouter) {
+
     //解析参数
     appNameFlag := flag.String("app", "", "请输入App名称")
+    
     appHostFlag := flag.String("host", "", "请输入绑定Ip")
 
     flag.Parse()
@@ -83,10 +85,15 @@ func parseApplication() (*ging.Settings, ging.IHttpRouter) {
 package myapp
 
 import (
+
     "github.com/gin-gonic/gin"
+
     "github.com/sanxia/ging"
+
     "github.com/sanxia/ging/middleware/authentication/cookie"
+
     "github.com/sanxia/ging/middleware/session"
+
 )
 
 // 创建路由
