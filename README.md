@@ -30,7 +30,6 @@ func main() {
     ging.Start(serverOption, appRouter)
 }
 
-
 func parseApplication() (*ging.Settings, ging.IHttpRouter) {
     //解析参数
     appNameFlag := flag.String("app", "", "请输入App名称")
@@ -99,6 +98,7 @@ func NewHttpRouter() ging.IHttpRouter {
 // Route 路由注册
 
 func (r *HttpRouter) Route() *gin.Engine {
+
     httpEngine := ging.NewHttpEngine(AppSettings.Storage.HtmlTemplate.Path, ging.RELEASE, AppSettings.IsDebug)
 
     //静态路由
@@ -145,7 +145,6 @@ func (r *HttpRouter) Route() *gin.Engine {
     passportController := passport.NewController("passport", httpEngine)
     passportController.Filter(filter.PassportFilter())
     passportController.Get("test", passportController.Test)
-    
 
     //public router
     publicController := public.NewController("public", httpEngine)
