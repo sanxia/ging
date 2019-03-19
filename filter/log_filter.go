@@ -41,7 +41,7 @@ func (s *logFilter) Before(ctx *gin.Context) ging.IActionResult {
 	url := ctx.Request.RequestURI
 	method := ctx.Request.Method
 
-	log.Printf("[%s] Before method:%s url:%s %v", s.Name, method, url, time.Now())
+	log.Printf("[%s] Before %s %s %v", s.Name, method, url, time.Now())
 
 	return nil
 }

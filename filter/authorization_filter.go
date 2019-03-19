@@ -44,7 +44,7 @@ type (
 func NewAuthorizationFilter(option *AuthorizationOption) ging.IActionFilter {
 	return &authorizationFilter{
 		Filter: ging.Filter{
-			Name: "authorization",
+			Name: "authorization_filter",
 		},
 		AuthorizationOption: AuthorizationOption{
 			Authorization: option.Authorization,

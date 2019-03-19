@@ -20,6 +20,8 @@ import (
  * 动作过滤器接口
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
+	IActionFilterList []IActionFilter
+
 	IActionFilter interface {
 		Before(*gin.Context) IActionResult
 		After(*gin.Context)

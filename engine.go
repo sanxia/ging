@@ -21,8 +21,11 @@ type (
 	IHttpEngine interface {
 		Engine() *gin.Engine
 		Middleware(args ...gin.HandlerFunc)
-		Render(render render.HTMLRender)
+		Get(groupName, path string, actionHandler ActionHandler) gin.IRoutes
+		Post(groupName, path string, actionHandler ActionHandler) gin.IRoutes
+		NoRoute(routeHandler gin.HandlerFunc)
 		Group(path string) *gin.RouterGroup
+		Render(render render.HTMLRender)
 		Static(routerPath, filePath string)
 	}
 
@@ -85,17 +88,58 @@ func (s *httpEngine) Middleware(args ...gin.HandlerFunc) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * gin渲染器设置
+ * gin未命中路由处理器设置
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *httpEngine) Render(render render.HTMLRender) {
-	s.engine.HTMLRender = render
+func (s *httpEngine) NoRoute(routeHandler gin.HandlerFunc) {
+	s.engine.NoRoute(routeHandler)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * gin路由组设置
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Group(path string) *gin.RouterGroup {
-	return s.engine.Group(path)
+	if len(path) > 0 {
+		return s.engine.Group(path)
+	}
+
+	return nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Http Get 动作
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *httpEngine) Get(groupName, path string, actionHandler ActionHandler) gin.IRoutes {
+	if group := s.Group(groupName); group != nil {
+		return group.GET(path, func(ctx *gin.Context) {
+			actionHandler(ctx).Render()
+		})
+	}
+
+	return s.engine.GET(path, func(ctx *gin.Context) {
+		actionHandler(ctx).Render()
+	})
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Http POST 动作
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *httpEngine) Post(groupName, path string, actionHandler ActionHandler) gin.IRoutes {
+	if group := s.Group(groupName); group != nil {
+		return group.POST(path, func(ctx *gin.Context) {
+			actionHandler(ctx).Render()
+		})
+	}
+
+	return s.engine.POST(path, func(ctx *gin.Context) {
+		actionHandler(ctx).Render()
+	})
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * gin渲染器设置
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *httpEngine) Render(render render.HTMLRender) {
+	s.engine.HTMLRender = render
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

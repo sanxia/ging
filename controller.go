@@ -25,7 +25,9 @@ import (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	IController interface {
-		Action(action func(ctx *gin.Context) IActionResult, args ...interface{}) func(*gin.Context)
+		IHttpAction
+
+		Action(actionHandler ActionHandler, args ...interface{}) func(*gin.Context)
 		Filter(filters ...IActionFilter) IController
 
 		SaveSession(ctx *gin.Context, name, value string)
@@ -42,14 +44,94 @@ type (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	Controller struct {
-		filters []IActionFilter
+		Engine    IHttpEngine
+		GroupName string
+		filters   []IActionFilter
 	}
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * IHttpAction接口实现 － Http Get请求
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) Get(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
+	handlerFunc := ctrl.Action(actionHandler, args...)
+
+	if group := ctrl.Engine.Group(ctrl.GroupName); group != nil {
+		return group.GET(path, handlerFunc)
+	}
+
+	return ctrl.Engine.Engine().GET(path, handlerFunc)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * IHttpAction接口实现 － Http Post请求
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) Post(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
+	handlerFunc := ctrl.Action(actionHandler, args...)
+
+	if group := ctrl.Engine.Group(ctrl.GroupName); group != nil {
+		return group.POST(path, handlerFunc)
+	}
+
+	return ctrl.Engine.Engine().POST(path, handlerFunc)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * IHttpAction接口实现 － Http Delete请求
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) Delete(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
+	handlerFunc := ctrl.Action(actionHandler, args...)
+
+	if group := ctrl.Engine.Group(ctrl.GroupName); group != nil {
+		return group.DELETE(path, handlerFunc)
+	}
+
+	return ctrl.Engine.Engine().DELETE(path, handlerFunc)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * IHttpAction接口实现 － Http Patch请求
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) Patch(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
+	handlerFunc := ctrl.Action(actionHandler, args...)
+
+	if group := ctrl.Engine.Group(ctrl.GroupName); group != nil {
+		return group.PATCH(path, handlerFunc)
+	}
+
+	return ctrl.Engine.Engine().PATCH(path, handlerFunc)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * IHttpAction接口实现 － Http Options请求
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) Options(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
+	handlerFunc := ctrl.Action(actionHandler, args...)
+
+	if group := ctrl.Engine.Group(ctrl.GroupName); group != nil {
+		return group.OPTIONS(path, handlerFunc)
+	}
+
+	return ctrl.Engine.Engine().OPTIONS(path, handlerFunc)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * IHttpAction接口实现 － Http Head请求
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) Head(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
+	handlerFunc := ctrl.Action(actionHandler, args...)
+
+	if group := ctrl.Engine.Group(ctrl.GroupName); group != nil {
+		return group.HEAD(path, handlerFunc)
+	}
+
+	return ctrl.Engine.Engine().HEAD(path, handlerFunc)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 控制器动作
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) Action(action func(ctx *gin.Context) IActionResult, args ...interface{}) func(*gin.Context) {
+func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{}) func(*gin.Context) {
 	return func(context *gin.Context) {
 		var actionFilters IActionFilterList
 		var filterResult IActionResult
@@ -107,7 +189,7 @@ func (ctrl *Controller) Action(action func(ctx *gin.Context) IActionResult, args
 		if filterResult != nil {
 			filterResult.Render()
 		} else {
-			action(context).Render()
+			actionHandler(context).Render()
 		}
 
 		if isFilterEnabled {
