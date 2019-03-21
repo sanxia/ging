@@ -11,7 +11,7 @@ import (
 )
 
 /* ================================================================================
- * 数据库数据域结构
+ * 数据库分片数据域结构
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -27,7 +27,7 @@ type (
  * 获取DatabaseMap
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func GetDatabaseMap(dbKey string, settings Settings) *gorm.DB {
-	log.Printf("getDbMap dbKey: %s", dbKey)
+	log.Printf("Sharing GetDatabaseMap dbKey: %s", dbKey)
 
 	var currentDatabase *DatabaseConnectionOption
 	for _, database := range settings.Database.Connections {
@@ -56,6 +56,7 @@ func GetDatabaseConnection(connectionOption DatabaseConnectionOption, isLog bool
 	if err != nil {
 		log.Printf("Error connecting to db: %s", err.Error())
 	}
+
 	dbMap.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;")
 	dbMap.DB().SetMaxIdleConns(16)
 	dbMap.DB().SetMaxOpenConns(512)

@@ -8,34 +8,34 @@ package ging
  * ================================================================================ */
 type (
 	Settings struct {
-		AppName      string             //应用名称
-		Server       ServerOption       //服务器
-		Domain       DomainOption       //域名
-		Image        ImageOption        //图像
-		Font         FontOption         //字体
-		Forms        FormsOption        //表单
-		Session      SessionOption      //会话
-		Redis        RedisOption        //Redis
-		MessageQueue MessageQueueOption //消息队列
-		Database     DatabaseOption     //数据库
-		Security     SecurityOption     //安全
-		Pay          PayOption          //支付
-		ValidateCode ValidateCodeOption //验证码
-		Mail         MailOption         //邮件
-		Sms          SmsOption          //短信
-		AliyunSms    SmsOption          //阿里云短信
-		Im           ImOption           //即时通信
-		Storage      StorageOption      //存储
-		Search       SearchOption       //搜索
-		Cors         CorsOption         //跨域
-		Test         TestOption         //测试
-		Log          LogOption          //日志
-		Version      VersionOption      //版本
-		IsCache      bool               //是否启用缓存
-		IsHttps      bool               //是否https
-		IsTesting    bool               //是否测试
-		IsOnline     bool               //是否线上
-		IsDebug      bool               //是否调试模式
+		WorkerNodeId int64                  //工作节点id
+		AppName      string                 //应用名称
+		Server       ServerOption           //服务器
+		Domain       DomainOption           //域名
+		Image        ImageOption            //图像
+		Font         FontOption             //字体
+		Forms        FormsOption            //表单
+		Session      SessionOption          //会话
+		Redis        RedisOption            //Redis
+		MessageQueue MessageQueueOption     //消息队列
+		Database     DatabaseOption         //数据库
+		Security     SecurityOption         //安全
+		Pay          PayOption              //支付
+		ValidateCode ValidateCodeOption     //验证码
+		Mail         map[string]*MailOption //邮件集合
+		Sms          map[string]*SmsOption  //短信集合
+		Im           ImOption               //即时通信
+		Storage      StorageOption          //存储
+		Search       SearchOption           //搜索
+		Cors         CorsOption             //跨域
+		Test         TestOption             //测试
+		Log          LogOption              //日志
+		Version      VersionOption          //版本
+		IsCache      bool                   //是否启用缓存
+		IsHttps      bool                   //是否https
+		IsTesting    bool                   //是否测试
+		IsOnline     bool                   //是否线上
+		IsDebug      bool                   //是否调试模式
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -107,8 +107,7 @@ type (
 		ForbiddenUsernames []string //禁止注册的用户名集合
 		ForbiddenPasswords []string //禁止使用的密码集合
 		IsApproved         bool     //是否需要审核
-		IsActived          bool     //是否需要激活
-		IsEnabled          bool     //是否开启新用户注册
+		IsEnabled          bool     //是否允许新用户注册
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -425,3 +424,62 @@ type (
 		IsRequired  bool              //是否必须更新
 	}
 )
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置指定的电子邮件项
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *Settings) SetMail(name string, mailOption *MailOption) {
+	if s.Mail == nil {
+		s.Mail = make(map[string]*MailOption, 0)
+	}
+
+	if _, isOk := s.Mail[name]; !isOk {
+		s.Mail[name] = mailOption
+	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取指定的电子邮件项
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *Settings) GetMail(name string) *MailOption {
+	if s.Mail != nil {
+		if mailOption, isOk := s.Mail[name]; isOk {
+			return mailOption
+		}
+	}
+
+	return nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置指定的短信项
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *Settings) SetSms(name string, smsOption *SmsOption) {
+	if s.Sms == nil {
+		s.Sms = make(map[string]*SmsOption, 0)
+	}
+
+	if _, isOk := s.Sms[name]; !isOk {
+		s.Sms[name] = smsOption
+	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取指定的短信项
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *Settings) GetSms(name string) *SmsOption {
+	if s.Sms != nil {
+		if smsOption, isOk := s.Sms[name]; isOk {
+			return smsOption
+		}
+	}
+
+	return nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置指定的短信项
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *Settings) SetIsCache(isCache bool) {
+	s.IsCache = isCache
+}
