@@ -33,28 +33,27 @@ func init() {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 注册App
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func RegisterApp(app *App) error {
+func RegisterApp(args ...*App) error {
 	var err *CustomError
 
-	fmt.Printf("%v ging app register\n", time.Now())
-	if app == nil {
-		err = NewCustomError("App不能为空")
-	}
-
-	if len(app.Name) == 0 {
-		err = NewCustomError("App名称不能为空")
-	}
-
-	isExists := false
-	for _, app := range apps {
-		if app.Name == strings.ToLower(app.Name) {
-			isExists = true
+	for _, currentApp := range args {
+		fmt.Printf("%v ging app register\n", time.Now())
+		if currentApp == nil || len(currentApp.Name) == 0 {
+			err = NewCustomError("App名称不能为空")
 			break
 		}
-	}
 
-	if !isExists {
-		apps = append(apps, app)
+		isExists := false
+		for _, app := range apps {
+			if strings.ToLower(app.Name) == strings.ToLower(currentApp.Name) {
+				isExists = true
+				break
+			}
+		}
+
+		if !isExists {
+			apps = append(apps, currentApp)
+		}
 	}
 
 	return err
