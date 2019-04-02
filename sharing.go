@@ -17,9 +17,24 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
+	//分库分表接口
 	ISharing interface {
-		GetDbKey() string
-		GetTableKey() string
+		ISharingDatabase
+		ISharingTable
+		GetDatabaseKey() string //数据库key
+		GetTableKey() string    //表key
+	}
+
+	//分库接口
+	ISharingDatabase interface {
+		GetDatabaseShardingField() string //数据库分片字段
+		GetDatabaseShardingCount() int32  //数据库分片数
+	}
+
+	//分表接口
+	ISharingTable interface {
+		GetTableShardingField() string //表分片字段
+		GetTableShardingCount() int32  //表分片数
 	}
 )
 
