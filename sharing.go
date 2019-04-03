@@ -17,24 +17,27 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
-	//分库分表接口
+	//分片接口
 	ISharing interface {
-		ISharingDatabase
-		ISharingTable
 		GetDatabaseKey() string //数据库key
 		GetTableKey() string    //表key
+
+		ISharingDatabase
+		ISharingTable
 	}
 
 	//分库接口
 	ISharingDatabase interface {
-		GetDatabaseShardingField() string //数据库分片字段
-		GetDatabaseShardingCount() int32  //数据库分片数
+		GetDatabaseShardingField() string         //获取数据库分片字段名
+		GetDatabaseShardingCount() int32          //获取数据库分片数
+		SetDatabaseShardingRoute(routeNode int32) //设置数据库分片路由（大于-1则表示直接路由到指定库，此值优先与分片字段）
 	}
 
 	//分表接口
 	ISharingTable interface {
-		GetTableShardingField() string //表分片字段
-		GetTableShardingCount() int32  //表分片数
+		GetTableShardingField() string         //获取表分片字段名
+		GetTableShardingCount() int32          //获取表分片数
+		SetTableShardingRoute(routeNode int32) //设置数据表分片路由（大于-1则表示直接路由到指定表，此值优先与分片字段）
 	}
 )
 
