@@ -35,6 +35,9 @@ var (
 	serverStatus *ServerStatus
 )
 
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * ging 初始化
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func init() {
 	fmt.Printf("%v ging init\n", time.Now())
 	serverStatus = &ServerStatus{

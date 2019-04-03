@@ -207,7 +207,7 @@ func (s *RediStore) New(r *http.Request, name string) (*sessions.Session, error)
 			}
 		}
 
-		log.Printf("mliu redis.go New name:%s, c.Value: %s, session.ID: %s", name, c.Value, session.ID)
+		log.Printf("ging RediStore New Session name:%s, c.Value: %s, session.ID: %s", name, c.Value, session.ID)
 
 		if err == nil {
 			ok, err := s.load(session)
