@@ -81,5 +81,6 @@ func GetDatabaseConnection(connectionOption DatabaseConnectionOption, isLog bool
 	dbMap.DB().SetConnMaxLifetime(time.Hour)
 	dbMap.LogMode(isLog)
 
-	return &dbMap, err
+	//return &dbMap, err
+	return dbMap, err
 }

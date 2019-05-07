@@ -3,16 +3,13 @@ package cookie
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 import (
 	"github.com/gin-gonic/gin"
-)
-
-import (
 	"github.com/sanxia/ging"
 	"github.com/sanxia/ging/result"
 	"github.com/sanxia/glib"
@@ -25,76 +22,33 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
-	fnValidate           func(ctx *gin.Context, extend CookieExtend, userIdentity *ging.UserIdentity) bool
-	CookieAuthentication struct {
-		Validate fnValidate
+	validateHandler      func(ctx *gin.Context, extend CookieExtend, tokenIdentity ging.IToken) bool
+	cookieAuthentication struct {
+		Validate validateHandler
 		Extend   CookieExtend
 	}
 
 	CookieExtend struct {
-		Option       *CookieOption //forms cookie
-		Role         string        //角色（多个之间用逗号分隔）
-		AuthorizeUrl string        //身份授权url
-		DefaultUrl   string        //认证通过默认返回url
-		PassUrls     []string      //直接通过的url
-		EncryptKey   string        //加密key
-		IsEnabled    bool          //是否启用验证
-	}
-
-	CookieOption struct {
-		Name     string
-		Path     string
-		Domain   string
-		MaxAge   int
-		HttpOnly bool
-		Secure   bool
+		Roles        []string     //角色（多个之间用逗号分隔）
+		Cookie       *ging.Cookie //cookie
+		AuthorizeUrl string       //认证url
+		DefaultUrl   string       //认证通过默认返回url
+		PassUrls     []string     //直接通过的url
+		EncryptKey   string       //加密key
+		IsRefresh    bool         //是否滑动刷新
+		IsEnabled    bool         //是否启用验证
 	}
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 创建新的Cookie验证实例
+ * 登入
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewCookieAuthentication(cookieAuth CookieAuthentication) (*CookieAuthentication, error) {
-	if len(cookieAuth.Extend.EncryptKey) != 32 {
-		return nil, errors.New("Cookie认证Key长度必须是32bytes")
-	}
+func (cookieAuth *cookieAuthentication) Logon(ctx *gin.Context, payload *ging.TokenPayload) bool {
+	tokenIdentity := ging.NewToken(cookieAuth.Extend.EncryptKey)
+	tokenIdentity.SetPayload(payload)
+	tokenIdentity.SetAuthenticated(true)
 
-	return &cookieAuth, nil
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登陆
- * userIdentity: 用户标示符域模型
- * isRemember: 是否持久化登陆信息
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) Logon(ctx *gin.Context, userIdentity *ging.UserIdentity, isRemember bool) bool {
-	userIdentity.IsAuthenticated = true
-	ticket, err := userIdentity.EncryptAES([]byte(cookieAuth.Extend.EncryptKey))
-	if err != nil {
-		return false
-	}
-
-	path := "/"
-	if len(cookieAuth.Extend.Option.Path) > 0 {
-		path = cookieAuth.Extend.Option.Path
-	}
-
-	httpCookie := http.Cookie{
-		Name:     cookieAuth.Extend.Option.Name,
-		Value:    ticket,
-		Path:     path,
-		Domain:   cookieAuth.Extend.Option.Domain,
-		HttpOnly: cookieAuth.Extend.Option.HttpOnly,
-		Secure:   cookieAuth.Extend.Option.Secure,
-	}
-
-	if isRemember {
-		httpCookie.MaxAge = cookieAuth.Extend.Option.MaxAge
-	} else {
-		httpCookie.MaxAge = 0
-	}
-
-	http.SetCookie(ctx.Writer, &httpCookie)
+	cookieAuth.SaveCookie(ctx, tokenIdentity, true)
 
 	return true
 }
@@ -102,122 +56,165 @@ func (cookieAuth *CookieAuthentication) Logon(ctx *gin.Context, userIdentity *gi
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 登出
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) Logoff(ctx *gin.Context) {
-	path := "/"
-	if len(cookieAuth.Extend.Option.Path) > 0 {
-		path = cookieAuth.Extend.Option.Path
-	}
-
-	//删除cookie
-	httpCookie := http.Cookie{
-		Name:     cookieAuth.Extend.Option.Name,
-		Value:    "",
-		MaxAge:   -1,
-		Path:     path,
-		Domain:   cookieAuth.Extend.Option.Domain,
-		HttpOnly: cookieAuth.Extend.Option.HttpOnly,
-		Secure:   cookieAuth.Extend.Option.Secure,
-	}
-	http.SetCookie(ctx.Writer, &httpCookie)
+func (cookieAuth *cookieAuthentication) Logoff(ctx *gin.Context) {
+	cookieAuth.ClearCookie(ctx)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 身份验证
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) Validation() gin.HandlerFunc {
-	currentUserIdentity := ging.UserIdentity{
-		IsAuthenticated: false,
-	}
-
+func (cookieAuth *cookieAuthentication) Validation() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		//允许指定模式的Url跳过验证
-		isPass := strings.HasPrefix(ctx.Request.URL.Path, cookieAuth.Extend.AuthorizeUrl)
+		requestPath := ctx.Request.URL.Path
+		isPass := strings.HasPrefix(requestPath, cookieAuth.Extend.AuthorizeUrl)
 		if !isPass {
+			//允许指定模式的Url跳过验证
 			for _, passUrl := range cookieAuth.Extend.PassUrls {
-				isPass = strings.HasPrefix(ctx.Request.URL.Path, passUrl)
+				isPass = strings.HasPrefix(requestPath, passUrl)
 				if isPass {
 					break
 				}
 			}
 		}
 
-		//如果未启用认证或跳过url
 		if !cookieAuth.Extend.IsEnabled || isPass {
-			log.Println("authentication url pass")
+			//如果未启用认证或跳过url
+			var currentToken ging.IToken
+
 			if isPass {
 				//默认返回地址处理
 				if isReturnUrl := cookieAuth.defaultReturnUrl(ctx); isReturnUrl {
 					return
 				}
 
-				//解析用户标识
-				if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err == nil {
-					currentUserIdentity = *userIdentity
-					log.Println("authentication url pass currentUserIdentity: %v", currentUserIdentity)
-					if len(userIdentity.UserId) > 0 {
-						currentUserIdentity.IsAuthenticated = true
-					}
-				} else {
-					currentUserIdentity.IsAuthenticated = false
+				if tokenIdentity, err := cookieAuth.parseTokenIdentity(ctx); err == nil {
+					currentToken = tokenIdentity
 				}
 			}
-			ctx.Set(ging.UserIdentityKey, currentUserIdentity)
-			ctx.Next()
-			return
+
+			cookieAuth.SaveCookie(ctx, currentToken, cookieAuth.Extend.IsRefresh)
 		} else {
-			//解析用户标识
-			if userIdentity, err := cookieAuth.parseUserIdentity(ctx); err != nil {
-				log.Printf("authentication parseUserIdentity error: %v", err)
-				cookieAuth.errorHandler(ctx)
-				ctx.Set(ging.UserIdentityKey, currentUserIdentity)
-				return
-			} else {
-				log.Printf("authentication userIdentity: %v", userIdentity)
-				if !userIdentity.IsAuthenticated {
-					isSuccess := cookieAuth.Validate(ctx, cookieAuth.Extend, userIdentity)
-					log.Printf("authentication Validate isSuccess %v", isSuccess)
-					if !isSuccess {
-						cookieAuth.errorHandler(ctx)
+			if tokenIdentity, err := cookieAuth.parseTokenIdentity(ctx); err == nil {
+				if !tokenIdentity.IsAuthenticated() {
+					if isSuccess := cookieAuth.Validate(ctx, cookieAuth.Extend, tokenIdentity); !isSuccess {
+						cookieAuth.ErrorHandler(ctx)
 						return
 					}
 				}
 
-				//传递验证用户标识
-				log.Printf("authentication Set UserIdentityKey: %v", userIdentity)
-				ctx.Set(ging.UserIdentityKey, *userIdentity)
-				ctx.Next()
+				cookieAuth.SaveCookie(ctx, tokenIdentity, cookieAuth.Extend.IsRefresh)
+			} else {
+				cookieAuth.ErrorHandler(ctx)
+				return
 			}
 		}
 	}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 解析用户标识
+ * 保存Cookie
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) parseUserIdentity(ctx *gin.Context) (*ging.UserIdentity, error) {
-	//解析Cookie
-	userIdentity := new(ging.UserIdentity)
-	if httpCookie, err := ctx.Request.Cookie(cookieAuth.Extend.Option.Name); err != nil {
-		return nil, err
-	} else if err := userIdentity.DecryptAES([]byte(cookieAuth.Extend.EncryptKey), httpCookie.Value); err != nil {
-		return nil, err
+func (cookieAuth *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdentity ging.IToken, isRefresh bool) {
+	if tokenIdentity != nil && isRefresh {
+		//默认有效期15分钟
+		maxAge := 900
+		if cookieAuth.Extend.Cookie.MaxAge > 0 {
+			maxAge = cookieAuth.Extend.Cookie.MaxAge
+		}
+
+		expiresDate := time.Now().Add(time.Duration(maxAge) * time.Second)
+		tokenIdentity.SetExpires(expiresDate.Unix())
+
+		tokenName := ging.USER_IDENTITY
+		if len(cookieAuth.Extend.Cookie.Name) > 0 {
+			tokenName = cookieAuth.Extend.Cookie.Name
+		}
+
+		path := "/"
+		if len(cookieAuth.Extend.Cookie.Path) > 0 {
+			path = cookieAuth.Extend.Cookie.Path
+		}
+
+		tokenCookie := http.Cookie{
+			Name:     tokenName,
+			Value:    tokenIdentity.GetToken(),
+			Path:     path,
+			Domain:   cookieAuth.Extend.Cookie.Domain,
+			MaxAge:   maxAge,
+			HttpOnly: cookieAuth.Extend.Cookie.HttpOnly,
+			Secure:   cookieAuth.Extend.Cookie.Secure,
+		}
+
+		http.SetCookie(ctx.Writer, &tokenCookie)
 	}
 
-	return userIdentity, nil
+	//传递Token标识
+	ctx.Set(ging.USER_IDENTITY, tokenIdentity)
+	ctx.Next()
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 清除Cookie
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (cookieAuth *cookieAuthentication) ClearCookie(ctx *gin.Context) {
+	tokenName := ging.USER_IDENTITY
+	if len(cookieAuth.Extend.Cookie.Name) > 0 {
+		tokenName = cookieAuth.Extend.Cookie.Name
+	}
+
+	path := "/"
+	if len(cookieAuth.Extend.Cookie.Path) > 0 {
+		path = cookieAuth.Extend.Cookie.Path
+	}
+
+	tokenCookie := http.Cookie{
+		Name:     tokenName,
+		Value:    "",
+		Path:     path,
+		Domain:   cookieAuth.Extend.Cookie.Domain,
+		MaxAge:   -1,
+		HttpOnly: cookieAuth.Extend.Cookie.HttpOnly,
+		Secure:   cookieAuth.Extend.Cookie.Secure,
+	}
+
+	http.SetCookie(ctx.Writer, &tokenCookie)
+
+	//清空Token标识
+	ctx.Set(ging.USER_IDENTITY, nil)
+	ctx.Next()
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 错误处理
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (cookieAuth *cookieAuthentication) ErrorHandler(ctx *gin.Context) {
+	requestUrl := ctx.Request.URL.RequestURI()
+	if requestUrl == "" || requestUrl == "/" || requestUrl == "/#/" || requestUrl == "#/" {
+		requestUrl = ctx.Request.URL.RequestURI()
+	}
+
+	//认证失败处理
+	if ging.IsAjax(ctx) {
+		result.JsonResult(ctx, ging.NewError(199, "身份未认证")).Render()
+	} else {
+		authorizeUrl := fmt.Sprintf("%s?returnurl=%s", cookieAuth.Extend.AuthorizeUrl, glib.UrlEncode(requestUrl))
+		result.RedirectResult(ctx, authorizeUrl).Render()
+	}
+
+	ctx.Abort()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 默认返回地址处理
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
+func (cookieAuth *cookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
 	isReturnUrl := false
 	if ctx.Request.URL.Path == cookieAuth.Extend.AuthorizeUrl {
 		returnUrl := ctx.DefaultQuery("returnurl", "")
-		if returnUrl == "" {
+		if len(returnUrl) == 0 {
 			redirectUrl := fmt.Sprintf("%s?returnurl=%s", ctx.Request.URL.Path, glib.UrlEncode(cookieAuth.Extend.DefaultUrl))
-			log.Println("authentication defaultReturnUrl: ", redirectUrl)
-
 			result.RedirectResult(ctx, redirectUrl).Render()
+
 			ctx.Abort()
 
 			isReturnUrl = true
@@ -228,23 +225,28 @@ func (cookieAuth *CookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool 
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 错误处理
+ * 解析Token标识
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *CookieAuthentication) errorHandler(ctx *gin.Context) {
-	returnUrl := ctx.Request.URL.RequestURI()
-	if returnUrl == "" || returnUrl == "/" || returnUrl == "/#/" || returnUrl == "#/" {
-		returnUrl = ctx.Request.URL.RequestURI()
+func (cookieAuth *cookieAuthentication) parseTokenIdentity(ctx *gin.Context) (ging.IToken, error) {
+	tokenIdentity := ging.NewToken(cookieAuth.Extend.EncryptKey)
+	tokenName := ging.USER_IDENTITY
+	tokenValue := ""
+
+	if len(cookieAuth.Extend.Cookie.Name) > 0 {
+		tokenName = cookieAuth.Extend.Cookie.Name
 	}
 
-	//认证失败的处理
-	if ging.IsAjax(ctx) {
-		result.JsonResult(ctx, ging.NewError(199, "身份未认证")).Render()
-	} else {
-		redirectUrl := fmt.Sprintf("%s?returnurl=%s", cookieAuth.Extend.AuthorizeUrl, glib.UrlEncode(returnUrl))
-		result.RedirectResult(ctx, redirectUrl).Render()
+	if cookieToken, err := ctx.Request.Cookie(tokenName); err == nil {
+		tokenValue = cookieToken.Value
 	}
 
-	ctx.Abort()
+	if len(tokenValue) == 0 {
+		return nil, errors.New("token identity error")
+	}
 
-	return
+	if err := tokenIdentity.ParseToken(tokenValue); err != nil {
+		return nil, err
+	}
+
+	return tokenIdentity, nil
 }

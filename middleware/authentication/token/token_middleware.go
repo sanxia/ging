@@ -2,12 +2,8 @@ package token
 
 import (
 	"github.com/gin-gonic/gin"
-)
-
-import (
 	"github.com/sanxia/ging"
-	"github.com/sanxia/ging/result"
-	"github.com/sanxia/ging/util"
+	"github.com/sanxia/glib"
 )
 
 /* ================================================================================
@@ -17,7 +13,7 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 var (
-	tokenAuth *TokenAuthentication
+	tokenAuth *tokenAuthentication
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -25,21 +21,11 @@ var (
  * extend: Token扩展数据
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func TokenAuthenticationMiddleware(extend TokenExtend) gin.HandlerFunc {
-	var err error
-	tokenAuth, err = NewTokenAuthentication(TokenAuthentication{
+	tokenAuth = &tokenAuthentication{
 		Extend: extend,
-		Validate: func(ctx *gin.Context, tokenExtend TokenExtend, userIdentity *ging.UserIdentity) bool {
-			return customValidate(ctx, tokenExtend, userIdentity)
+		Validate: func(ctx *gin.Context, tokenExtend TokenExtend, tokenIdentity ging.IToken) bool {
+			return customValidate(ctx, tokenExtend, tokenIdentity)
 		},
-	})
-
-	if err != nil {
-		return func(ctx *gin.Context) {
-			viewResult := result.JsonResult(ctx, ging.NewError(111, "参数错误"))
-			viewResult.Render()
-
-			ctx.Abort()
-		}
 	}
 
 	//身份验证
@@ -49,25 +35,23 @@ func TokenAuthenticationMiddleware(extend TokenExtend) gin.HandlerFunc {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 自定义验证扩展点
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func customValidate(ctx *gin.Context, extend TokenExtend, userIdentity *ging.UserIdentity) bool {
+func customValidate(ctx *gin.Context, extend TokenExtend, tokenIdentity ging.IToken) bool {
 	isInRole := true
 
-	if len(extend.Role) > 0 {
-		//角色交集合
-		roles := glib.StringInter(glib.StringToStringSlice(userIdentity.Role), glib.StringToStringSlice(extend.Role))
-		isInRole = len(roles) > 0
+	if len(extend.Roles) > 0 {
+		if roles := glib.StringInter(tokenIdentity.GetPayload().Roles, extend.Roles); len(roles) == 0 {
+			isInRole = false
+		}
 	}
 
 	return isInRole
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登陆
- * userModel: 用户数据模型
- * isPersistence: 是否持久化登陆信息
+ * 登入
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Logon(ctx *gin.Context, userIdentity *ging.UserIdentity) string {
-	return tokenAuth.Logon(ctx, userIdentity)
+func Logon(ctx *gin.Context, payload *ging.TokenPayload) {
+	tokenAuth.Logon(ctx, payload)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -35,7 +35,7 @@ type (
 		RemoveSession(ctx *gin.Context, name string)
 		ClearSession(ctx *gin.Context)
 
-		GetUserIdentity(ctx *gin.Context) *UserIdentity
+		GetToken(ctx *gin.Context) IToken
 	}
 )
 
@@ -228,19 +228,6 @@ func (ctrl *Controller) Filter(filters ...IActionFilter) IController {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取用户标识
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) GetUserIdentity(ctx *gin.Context) *UserIdentity {
-	var userIdentity *UserIdentity
-	if identity, ok := ctx.Get(UserIdentityKey); ok {
-		user := identity.(UserIdentity)
-		userIdentity = &user
-	}
-
-	return userIdentity
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取会话对象
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) getSession(ctx *gin.Context) session.ISession {
@@ -319,4 +306,21 @@ func (ctrl *Controller) RemoveSession(ctx *gin.Context, name string) {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) ClearSession(ctx *gin.Context) {
 	ctrl.getSession(ctx).Clear()
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取Token接口
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) GetToken(ctx *gin.Context) IToken {
+	var userToken IToken
+
+	if ctx != nil {
+		if userIdentity, isOk := ctx.Get(USER_IDENTITY); userIdentity != nil && isOk {
+			if tokenIdentity, isOk := userIdentity.(*token); isOk {
+				userToken = tokenIdentity
+			}
+		}
+	}
+
+	return userToken
 }

@@ -30,17 +30,21 @@ func Gzip(level int) gin.HandlerFunc {
 		if !shouldCompress(c.Request) {
 			return
 		}
+
 		gz, err := gzip.NewWriterLevel(c.Writer, level)
 		if err != nil {
 			return
 		}
+
 		c.Header("Content-Encoding", "gzip")
 		c.Header("Vary", "Accept-Encoding")
 		c.Writer = &gzipWriter{c.Writer, gz}
+
 		defer func() {
 			c.Header("Content-Length", "")
 			gz.Close()
 		}()
+
 		c.Next()
 	}
 }
@@ -58,10 +62,12 @@ func shouldCompress(req *http.Request) bool {
 	if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
 		return false
 	}
+
 	extension := filepath.Ext(req.URL.Path)
 	if len(extension) < 4 {
 		return true
 	}
+
 	switch extension {
 	case ".png", ".gif", ".jpeg", ".jpg":
 		return false
