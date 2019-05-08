@@ -5,7 +5,9 @@ import (
 )
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
+	"github.com/sanxia/ging/middleware/session/store"
 )
 
 /* ================================================================================
@@ -25,20 +27,7 @@ type (
 		Save() error
 		Delete(key interface{})
 		Clear()
-		Options(Options)
-	}
-
-	IStore interface {
-		sessions.Store
-	}
-
-	Options struct {
-		Name     string
-		Path     string
-		Domain   string
-		MaxAge   int
-		Secure   bool
-		HttpOnly bool
+		Options(store.CookieOption)
 	}
 
 	session struct {
@@ -46,10 +35,25 @@ type (
 		request *http.Request
 		writer  http.ResponseWriter
 		session *sessions.Session
-		store   IStore
+		store   store.IStore
 		written bool
 	}
 )
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 初始化会话接口
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func NewSession(ctx *gin.Context) ISession {
+	name := ctx.MustGet(sessionName).(string)
+	store := ctx.MustGet(sessionStore).(store.IStore)
+
+	return &session{
+		name:    name,
+		request: ctx.Request,
+		writer:  ctx.Writer,
+		store:   store,
+	}
+}
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取Session
@@ -62,11 +66,13 @@ func (s *session) Session() *sessions.Session {
 			s.session = session
 		}
 	}
+
 	return s.session
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取会话Id
+ * redis store 存储模式下有效
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *session) SessionId() string {
 	return s.Session().ID
@@ -107,6 +113,7 @@ func (s *session) AddFlash(value interface{}, vars ...string) {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *session) Flashes(vars ...string) []interface{} {
 	s.written = true
+
 	return s.Session().Flashes(vars...)
 }
 
@@ -122,6 +129,7 @@ func (s *session) Save() error {
 		}
 		return err
 	}
+
 	return nil
 }
 
@@ -145,12 +153,12 @@ func (s *session) Clear() {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置会话选项
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *session) Options(options Options) {
+func (s *session) Options(cookie store.CookieOption) {
 	s.Session().Options = &sessions.Options{
-		Path:     options.Path,
-		Domain:   options.Domain,
-		MaxAge:   options.MaxAge,
-		Secure:   options.Secure,
-		HttpOnly: options.HttpOnly,
+		Path:     cookie.Path,
+		Domain:   cookie.Domain,
+		MaxAge:   cookie.MaxAge,
+		Secure:   cookie.Secure,
+		HttpOnly: cookie.HttpOnly,
 	}
 }

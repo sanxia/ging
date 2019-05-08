@@ -18,7 +18,7 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 const (
-	USER_IDENTITY string = "__ging_token__"
+	USER_IDENTITY string = "__ging_u__"
 )
 
 type (

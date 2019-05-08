@@ -7,6 +7,7 @@ import (
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/context"
+	"github.com/sanxia/ging/middleware/session/store"
 )
 
 /* ================================================================================
@@ -16,109 +17,78 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 const (
-	sessionName  = "sessionName"
-	sessionStore = "sessionStore"
+	sessionName             = "__session_name___"
+	sessionStore            = "__session_store__"
+	SESSION_IDENTITY string = "__ging_s__"
 )
 
-type SessionOption struct {
-	StoreType  string
-	EncryptKey string
-	Cookie     *SessionCookieOption
-	Redis      *SessionRedisOption
-}
+type (
+	SessionExtend struct {
+		StoreType  string
+		EncryptKey string
+		Cookie     *store.CookieOption
+		Redis      *store.RedisOption
+	}
+)
 
-type SessionCookieOption struct {
-	Name     string
-	Path     string
-	Domain   string
-	MaxAge   int
-	Secure   bool
-	HttpOnly bool
-}
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Session会话中间件
+ * option: option扩展数据
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func SessionMiddleware(extend *SessionExtend) gin.HandlerFunc {
+	storeType := "cookie"
+	if len(extend.StoreType) > 0 {
+		storeType = strings.ToLower(extend.StoreType)
+	}
 
-type SessionRedisOption struct {
-	Host     string
-	Port     int
-	Password string
-	Prefix   string
-}
-
-func SessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
-	storeType := strings.ToLower(sessionOption.StoreType)
 	if storeType == "cookie" {
-		return CookieStoreSessionMiddleware(sessionOption)
+		return CookieStore(extend)
 	}
-	return RedisStoreSessionMiddleware(sessionOption)
+
+	return RedisStore(extend)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Cookie 存储
+ * Cookie存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func CookieStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
-	store := NewCookieStore([]byte(sessionOption.EncryptKey))
+func CookieStore(extend *SessionExtend) gin.HandlerFunc {
+	cookieStore := store.NewCookieStore([]byte(extend.EncryptKey))
+	cookieStore.Options(extend.Cookie)
 
-	//session id 的cookie存储属性设置
-	options := Options{
-		Name:     sessionOption.Cookie.Name,
-		Path:     sessionOption.Cookie.Path,
-		Domain:   sessionOption.Cookie.Domain,
-		MaxAge:   sessionOption.Cookie.MaxAge,
-		Secure:   sessionOption.Cookie.Secure,
-		HttpOnly: sessionOption.Cookie.HttpOnly,
-	}
-	store.Options(options)
-
-	return StoreSessionMiddleware(sessionOption.Cookie.Name, store)
+	return SessionStore(extend.Cookie.Name, cookieStore)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Redis 存储
+ * Redis存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func RedisStoreSessionMiddleware(sessionOption *SessionOption) gin.HandlerFunc {
-	store := NewRedisStore(
-		sessionOption.Redis.Host,
-		sessionOption.Redis.Port,
-		sessionOption.Redis.Password,
-		sessionOption.Redis.Prefix,
-		[]byte(sessionOption.EncryptKey),
+func RedisStore(extend *SessionExtend) gin.HandlerFunc {
+	redisStore := store.NewRedisStore(
+		extend.Redis.Host,
+		extend.Redis.Port,
+		extend.Redis.Password,
+		extend.Redis.Prefix,
+		[]byte(extend.EncryptKey),
 	)
 
-	//session id 的cookie存储属性设置
-	options := Options{
-		Name:     sessionOption.Cookie.Name,
-		Path:     sessionOption.Cookie.Path,
-		Domain:   sessionOption.Cookie.Domain,
-		MaxAge:   sessionOption.Cookie.MaxAge,
-		Secure:   sessionOption.Cookie.Secure,
-		HttpOnly: sessionOption.Cookie.HttpOnly,
-	}
-	store.Options(options)
+	redisStore.Options(extend.Cookie)
 
-	return StoreSessionMiddleware(sessionOption.Cookie.Name, store)
+	return SessionStore(extend.Cookie.Name, redisStore)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 会话存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func StoreSessionMiddleware(name string, store IStore) gin.HandlerFunc {
+func SessionStore(name string, storeImpl store.IStore) gin.HandlerFunc {
+	if len(name) == 0 {
+		name = SESSION_IDENTITY
+	}
+
 	return func(ctx *gin.Context) {
 		ctx.Set(sessionName, name)
-		ctx.Set(sessionStore, store)
-		defer context.Clear(ctx.Request)
-		ctx.Next()
-	}
-}
+		ctx.Set(sessionStore, storeImpl)
 
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取会话接口
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Get(ctx *gin.Context) ISession {
-	name := ctx.MustGet(sessionName).(string)
-	store := ctx.MustGet(sessionStore).(IStore)
-	return &session{
-		name:    name,
-		request: ctx.Request,
-		writer:  ctx.Writer,
-		store:   store,
+		defer context.Clear(ctx.Request)
+
+		ctx.Next()
 	}
 }

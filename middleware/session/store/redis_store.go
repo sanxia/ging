@@ -1,4 +1,4 @@
-package session
+package store
 
 import (
 	"fmt"
@@ -14,21 +14,30 @@ import (
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
-type IRedisStore interface {
-	IStore
-	Options(Options)
-}
+type (
+	IRedisStore interface {
+		IStore
+		Options(*CookieOption)
+	}
 
-type redisStore struct {
-	*RediStore
-}
+	RedisOption struct {
+		Host     string
+		Port     int
+		Password string
+		Prefix   string
+	}
+
+	redisStore struct {
+		*RediStore
+	}
+)
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取Redis存储
+ * Session会话Cookie存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRedisStore(ip string, port int, password, prefixKey string, keyPairs ...[]byte) IRedisStore {
-	redisIp := fmt.Sprintf("%s:%d", ip, port)
-	s, err := NewRediStore(10, "tcp", redisIp, password, keyPairs...)
+func NewRedisStore(ip string, port int, password, prefixKey string, encryptKey []byte) IRedisStore {
+	host := fmt.Sprintf("%s:%d", ip, port)
+	s, err := NewRediStore(10, "tcp", host, password, encryptKey)
 	if err != nil {
 		panic(fmt.Sprintf("connect redis error: %v", err))
 	}
@@ -43,14 +52,14 @@ func NewRedisStore(ip string, port int, password, prefixKey string, keyPairs ...
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Redis存储选项
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *redisStore) Options(options Options) {
+func (s *redisStore) Options(cookie *CookieOption) {
 	s.RediStore.Options = &sessions.Options{
-		Path:     options.Path,
-		Domain:   options.Domain,
-		MaxAge:   options.MaxAge,
-		Secure:   options.Secure,
-		HttpOnly: options.HttpOnly,
+		Path:     cookie.Path,
+		Domain:   cookie.Domain,
+		MaxAge:   cookie.MaxAge,
+		Secure:   cookie.Secure,
+		HttpOnly: cookie.HttpOnly,
 	}
 
-	s.RediStore.SetMaxAge(options.MaxAge)
+	s.SetMaxAge(cookie.MaxAge)
 }

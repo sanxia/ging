@@ -2,14 +2,10 @@ package ging
 
 import (
 	"log"
-	"strings"
 )
 
 import (
 	"github.com/gin-gonic/gin"
-)
-
-import (
 	"github.com/sanxia/ging/middleware/session"
 )
 
@@ -31,6 +27,7 @@ type (
 		Filter(filters ...IActionFilter) IController
 
 		SaveSession(ctx *gin.Context, name, value string)
+		GetSession(ctx *gin.Context, name string) string
 		ValidateSession(ctx *gin.Context, name, value string, args ...bool) bool
 		RemoveSession(ctx *gin.Context, name string)
 		ClearSession(ctx *gin.Context)
@@ -231,43 +228,56 @@ func (ctrl *Controller) Filter(filters ...IActionFilter) IController {
  * 获取会话对象
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) getSession(ctx *gin.Context) session.ISession {
-	//log.Printf("ctrl GetSession: sid: %s, values: %v", session.Get(ctx).SessionId(), session.Get(ctx).Values())
-	return session.Get(ctx)
+	newSession := session.NewSession(ctx)
+	log.Printf("ctrl getSession: id: %s, values: %v", newSession.SessionId(), newSession.Values())
+
+	return newSession
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 保存会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) SaveSession(ctx *gin.Context, name, value string) {
-	log.Printf("SaveSession name:%s value: %s", name, value)
-
 	if len(name) == 0 || len(value) == 0 {
 		return
 	}
 
 	session := ctrl.getSession(ctx)
-	session.Set(name, strings.ToLower(value))
+	session.Set(name, value)
 	session.Save()
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取会话值
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) GetSession(ctx *gin.Context, name string) string {
+	value := ""
+	if len(name) == 0 {
+		return value
+	}
+
+	if sessionValue, isOk := ctrl.getSession(ctx).Get(name).(string); isOk {
+		value = sessionValue
+	}
+
+	return value
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 校验会话值
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, args ...bool) bool {
-	log.Printf("ValidateSession name:%s value: %s", name, value)
-
-	if len(name) == 0 || len(value) == 0 {
-		isSuccess := false
-		return isSuccess
-	}
-
 	isSuccess := true
 	isRemove := true
 
+	if len(name) == 0 || len(value) == 0 {
+		isSuccess = false
+		return isSuccess
+	}
+
 	session := ctrl.getSession(ctx)
 	if sessionValue, isOk := session.Get(name).(string); isOk {
-		log.Printf("ValidateSession sessionValue: %s", sessionValue)
-		if sessionValue != strings.ToLower(value) {
+		if sessionValue != value {
 			isSuccess = false
 		}
 	} else {
@@ -305,7 +315,9 @@ func (ctrl *Controller) RemoveSession(ctx *gin.Context, name string) {
  * 清除会话
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) ClearSession(ctx *gin.Context) {
-	ctrl.getSession(ctx).Clear()
+	session := ctrl.getSession(ctx)
+	session.Clear()
+	session.Save()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
