@@ -16,7 +16,7 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
-	ISessionSerializer interface {
+	ISerializer interface {
 		Deserialize(d []byte, ss *sessions.Session) error
 		Serialize(ss *sessions.Session) ([]byte, error)
 	}

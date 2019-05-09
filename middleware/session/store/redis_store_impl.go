@@ -21,11 +21,11 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
-	RediStore struct {
+	RedisStoreImpl struct {
 		Pool          *redis.Pool
 		Options       *sessions.Options
 		DefaultMaxAge int
-		serializer    serializer.ISessionSerializer
+		serializer    serializer.ISerializer
 		maxLength     int
 		keyPrefix     string
 		encryptKey    string
@@ -33,10 +33,10 @@ type (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 实例化RediStore
+ * 实例化RedisStoreImpl
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRediStore(size int, network, address, password string, encryptKey []byte) (*RediStore, error) {
-	return NewRediStoreWithPool(&redis.Pool{
+func NewRedisStoreImpl(size int, network, address, password string, encryptKey []byte) (*RedisStoreImpl, error) {
+	return NewRedisStoreImplWithPool(&redis.Pool{
 		MaxIdle:     size,
 		IdleTimeout: 240 * time.Second,
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
@@ -52,8 +52,8 @@ func NewRediStore(size int, network, address, password string, encryptKey []byte
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 实例化RedisPool
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRediStoreWithPool(pool *redis.Pool, encryptKey []byte) (*RediStore, error) {
-	rs := &RediStore{
+func NewRedisStoreImplWithPool(pool *redis.Pool, encryptKey []byte) (*RedisStoreImpl, error) {
+	rs := &RedisStoreImpl{
 		Pool: pool,
 		Options: &sessions.Options{
 			Path: "/",
@@ -70,36 +70,10 @@ func NewRediStoreWithPool(pool *redis.Pool, encryptKey []byte) (*RediStore, erro
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 连接redis
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func dial(network, address, password string) (redis.Conn, error) {
-	c, err := redis.Dial(network, address)
-	if err != nil {
-		return nil, err
-	}
-
-	if password != "" {
-		if _, err := c.Do("AUTH", password); err != nil {
-			c.Close()
-			return nil, err
-		}
-	}
-
-	/*
-		if _, err := c.Do("SELECT", "0"); err != nil {
-			c.Close()
-			return nil, err
-		}
-	*/
-
-	return c, err
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 实例化会话
  * IStore接口实现
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) New(request *http.Request, name string) (*sessions.Session, error) {
+func (s *RedisStoreImpl) New(request *http.Request, name string) (*sessions.Session, error) {
 	var err error
 
 	session := sessions.NewSession(s, name)
@@ -107,13 +81,11 @@ func (s *RediStore) New(request *http.Request, name string) (*sessions.Session, 
 	session.Options = &options
 	session.IsNew = true
 
-	if c, errCookie := request.Cookie(name); errCookie == nil {
-		decodeData, err := serializer.CustomDecode(name, c.Value, s.encryptKey)
+	if cookie, errCookie := request.Cookie(name); errCookie == nil {
+		sessionId, err := serializer.CustomDecode(name, cookie.Value, s.encryptKey)
 		if err == nil {
-			session.ID = decodeData
-		}
+			session.ID = sessionId
 
-		if err == nil {
 			ok, err := s.load(session)
 			session.IsNew = !(err == nil && ok)
 		}
@@ -123,42 +95,12 @@ func (s *RediStore) New(request *http.Request, name string) (*sessions.Session, 
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置Redis Key 前缀
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) SetKeyPrefix(keyPrefix string) {
-	s.keyPrefix = keyPrefix
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置会话最大有效时间（单位：秒）
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) SetMaxAge(maxAge int) {
-	s.Options.MaxAge = maxAge
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置最大长度
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) SetMaxLength(maxLength int) {
-	if maxLength >= 0 {
-		s.maxLength = maxLength
-	}
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 关闭redis链接
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) Close() error {
-	return s.Pool.Close()
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取会话
  * IStore接口实现
  * 第一次会回调当前store的New，实例化Store
  * 随后会从Register缓存sessions map[string]sessionInfo的里取出sessionInfo对象里的s值即sessions.Session对象
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+func (s *RedisStoreImpl) Get(r *http.Request, name string) (*sessions.Session, error) {
 	return sessions.GetRegistry(r).Get(s, name)
 }
 
@@ -166,7 +108,7 @@ func (s *RediStore) Get(r *http.Request, name string) (*sessions.Session, error)
  * 保存会话
  * IStore接口实现
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
+func (s *RedisStoreImpl) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	if session.Options.MaxAge < 0 {
 		if err := s.delete(session); err != nil {
 			return err
@@ -181,21 +123,51 @@ func (s *RediStore) Save(r *http.Request, w http.ResponseWriter, session *sessio
 			return err
 		}
 
-		encodeData, err := serializer.CustomEncode(session.Name(), session.ID, s.encryptKey)
+		sessionId, err := serializer.CustomEncode(session.Name(), session.ID, s.encryptKey)
 		if err != nil {
 			return err
 		}
 
-		http.SetCookie(w, sessions.NewCookie(session.Name(), encodeData, session.Options))
+		http.SetCookie(w, sessions.NewCookie(session.Name(), sessionId, session.Options))
 	}
 
 	return nil
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置Redis Key 前缀
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RedisStoreImpl) SetKeyPrefix(keyPrefix string) {
+	s.keyPrefix = keyPrefix
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置会话最大有效时间（单位：秒）
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RedisStoreImpl) SetMaxAge(maxAge int) {
+	s.Options.MaxAge = maxAge
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置最大长度
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RedisStoreImpl) SetMaxLength(maxLength int) {
+	if maxLength >= 0 {
+		s.maxLength = maxLength
+	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 关闭redis链接
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *RedisStoreImpl) Close() error {
+	return s.Pool.Close()
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 检测服务器是否活着
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) ping() (bool, error) {
+func (s *RedisStoreImpl) ping() (bool, error) {
 	conn := s.Pool.Get()
 	defer conn.Close()
 	data, err := conn.Do("PING")
@@ -208,7 +180,7 @@ func (s *RediStore) ping() (bool, error) {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 从Redis读取会话
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) load(session *sessions.Session) (bool, error) {
+func (s *RedisStoreImpl) load(session *sessions.Session) (bool, error) {
 	conn := s.Pool.Get()
 	defer conn.Close()
 
@@ -236,7 +208,7 @@ func (s *RediStore) load(session *sessions.Session) (bool, error) {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 会话存入Redis
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) save(session *sessions.Session) error {
+func (s *RedisStoreImpl) save(session *sessions.Session) error {
 	sessionValue, err := s.serializer.Serialize(session)
 	if err != nil {
 		return err
@@ -266,7 +238,7 @@ func (s *RediStore) save(session *sessions.Session) error {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 从Redis删除会话
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RediStore) delete(session *sessions.Session) error {
+func (s *RedisStoreImpl) delete(session *sessions.Session) error {
 	conn := s.Pool.Get()
 	defer conn.Close()
 
@@ -275,4 +247,30 @@ func (s *RediStore) delete(session *sessions.Session) error {
 	}
 
 	return nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 连接redis
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func dial(network, address, password string) (redis.Conn, error) {
+	c, err := redis.Dial(network, address)
+	if err != nil {
+		return nil, err
+	}
+
+	if password != "" {
+		if _, err := c.Do("AUTH", password); err != nil {
+			c.Close()
+			return nil, err
+		}
+	}
+
+	/*
+		if _, err := c.Do("SELECT", "0"); err != nil {
+			c.Close()
+			return nil, err
+		}
+	*/
+
+	return c, err
 }

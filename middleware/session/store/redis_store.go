@@ -28,7 +28,7 @@ type (
 	}
 
 	redisStore struct {
-		*RediStore
+		*RedisStoreImpl
 	}
 )
 
@@ -37,23 +37,23 @@ type (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewRedisStore(ip string, port int, password, prefixKey string, encryptKey []byte) IRedisStore {
 	host := fmt.Sprintf("%s:%d", ip, port)
-	s, err := NewRediStore(10, "tcp", host, password, encryptKey)
+	redisStoreImpl, err := NewRedisStoreImpl(10, "tcp", host, password, encryptKey)
 	if err != nil {
 		panic(fmt.Sprintf("connect redis error: %v", err))
 	}
 
 	if len(prefixKey) > 0 {
-		s.SetKeyPrefix(prefixKey)
+		redisStoreImpl.SetKeyPrefix(prefixKey)
 	}
 
-	return &redisStore{s}
+	return &redisStore{redisStoreImpl}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Redis存储选项
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *redisStore) Options(cookie *CookieOption) {
-	s.RediStore.Options = &sessions.Options{
+	s.RedisStoreImpl.Options = &sessions.Options{
 		Path:     cookie.Path,
 		Domain:   cookie.Domain,
 		MaxAge:   cookie.MaxAge,
