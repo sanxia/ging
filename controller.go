@@ -185,6 +185,8 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 
 		if filterResult != nil {
 			filterResult.Render()
+			context.Abort()
+			return
 		} else {
 			actionHandler(context).Render()
 		}
@@ -328,7 +330,7 @@ func (ctrl *Controller) GetToken(ctx *gin.Context) IToken {
 
 	if ctx != nil {
 		if userIdentity, isOk := ctx.Get(USER_IDENTITY); userIdentity != nil && isOk {
-			if tokenIdentity, isOk := userIdentity.(*token); isOk {
+			if tokenIdentity, isOk := userIdentity.(*Token); isOk {
 				userToken = tokenIdentity
 			}
 		}

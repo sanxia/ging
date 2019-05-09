@@ -24,7 +24,7 @@ import (
  * ================================================================================ */
 type (
 	IAuthorization interface {
-		Authorize(*ging.UserIdentity) bool
+		Authorize(ging.IToken) bool
 	}
 
 	authorizationFilter struct {
@@ -59,25 +59,26 @@ func NewAuthorizationFilter(option *AuthorizationOption) ging.IActionFilter {
 func (s *authorizationFilter) Before(ctx *gin.Context) ging.IActionResult {
 	log.Printf("[%s] Before %v", s.Name, time.Now())
 
-	var userIdentity *ging.UserIdentity
+	var userToken ging.IToken
 	var actionResult ging.IActionResult
 
 	//判断是否ajax请求
 	isAjax := ging.IsAjax(ctx)
 
 	//获取当前用户标识
-	if identity, isOk := ctx.Get(ging.UserIdentityKey); isOk {
-		user := identity.(ging.UserIdentity)
-		userIdentity = &user
+	if userIdentity, isOk := ctx.Get(ging.USER_IDENTITY); userIdentity != nil && isOk {
+		if tokenIdentity, isOk := userIdentity.(*ging.Token); isOk {
+			userToken = tokenIdentity
+		}
 	}
 
 	//跳转到认证地址
 	requestUrl := ctx.Request.URL.RequestURI()
 	authUrl := fmt.Sprintf("%s?returnurl=%s", s.AuthorizeUrl, url.QueryEscape(requestUrl))
 
-	if userIdentity != nil {
+	if userToken != nil {
 		if s.Authorization != nil {
-			if !s.Authorization.Authorize(userIdentity) {
+			if !s.Authorization.Authorize(userToken) {
 				if isAjax {
 					actionResult = getJsonResult(ctx, ging.NewError(191, "操作权限未被许可"))
 				} else {

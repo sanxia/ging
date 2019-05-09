@@ -39,7 +39,7 @@ type (
 )
 
 type (
-	token struct {
+	Token struct {
 		payload   *TokenPayload //载荷
 		signature string        //签名指纹
 		secret    string        //秘匙
@@ -69,8 +69,8 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 初始化Token标识
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewToken(secret string) *token {
-	return &token{
+func NewToken(secret string) *Token {
+	return &Token{
 		payload: &TokenPayload{},
 		secret:  secret,
 	}
@@ -79,7 +79,7 @@ func NewToken(secret string) *token {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取Token字符串
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) GetToken() string {
+func (s *Token) GetToken() string {
 	tokenTicket := ""
 	s.signature = s.tokenSignature()
 
@@ -93,7 +93,7 @@ func (s *token) GetToken() string {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Parse Token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) ParseToken(token string) error {
+func (s *Token) ParseToken(token string) error {
 	if len(token) == 0 {
 		return errors.New("token format error")
 	}
@@ -143,21 +143,21 @@ func (s *token) ParseToken(token string) error {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取Payload
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) GetPayload() *TokenPayload {
+func (s *Token) GetPayload() *TokenPayload {
 	return s.payload
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Payload
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) SetPayload(payload *TokenPayload) {
+func (s *Token) SetPayload(payload *TokenPayload) {
 	s.payload = payload
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Expires
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) SetExpires(expires int64) {
+func (s *Token) SetExpires(expires int64) {
 	s.payload.Start = time.Now().Unix()
 
 	if expires <= 0 {
@@ -170,14 +170,14 @@ func (s *token) SetExpires(expires int64) {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置是否已认证
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) SetAuthenticated(isAuthenticated bool) {
+func (s *Token) SetAuthenticated(isAuthenticated bool) {
 	s.payload.IsAuthenticated = isAuthenticated
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取Token签名
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) tokenSignature() string {
+func (s *Token) tokenSignature() string {
 	signature := ""
 	if len(s.secret) > 0 {
 		if payload, err := s.payload.Serialize(); err == nil {
@@ -191,7 +191,7 @@ func (s *token) tokenSignature() string {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Token是否已认证
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) IsAuthenticated() bool {
+func (s *Token) IsAuthenticated() bool {
 	isAuthenticated := s.payload.IsAuthenticated
 	return isAuthenticated
 }
@@ -199,7 +199,7 @@ func (s *token) IsAuthenticated() bool {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Token签名是否有效
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) IsValid() bool {
+func (s *Token) IsValid() bool {
 	isValid := false
 	if signature := s.tokenSignature(); strings.ToLower(s.signature) == strings.ToLower(signature) {
 		isValid = true
@@ -211,7 +211,7 @@ func (s *token) IsValid() bool {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Token是否已过期
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *token) IsExpired() bool {
+func (s *Token) IsExpired() bool {
 	isExpired := false
 
 	if s.payload.Start <= 0 || s.payload.Expires <= 0 {
