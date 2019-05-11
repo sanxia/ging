@@ -20,6 +20,7 @@ type (
 		MessageQueue MessageQueueOption     //消息队列
 		Database     DatabaseOption         //数据库
 		Security     SecurityOption         //安全
+		Oauth        OauthOption            //第三方登录
 		Pay          PayOption              //支付
 		ValidateCode ValidateCodeOption     //验证码
 		Mail         map[string]*MailOption //邮件集合
@@ -207,6 +208,32 @@ type (
 		AccountSecret        string //账户密匙
 		EncryptKey           string //安全加密Key
 		VerifyWaitingMinutes int64  //验证等待多少分钟
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * 第三方登录
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	OauthOption struct {
+		WeChat OauthPlatform
+		Qq     OauthPlatform
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * 第三方登录平台
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	OauthPlatform struct {
+		Web    OauthApp
+		Mobile OauthApp
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * 第三方登录应用
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	OauthApp struct {
+		AppId       string //应用id
+		AppKey      string //应用秘匙
+		CallbackUrl string //回调地址
+		IsDisabled  bool   //是否禁用
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
