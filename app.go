@@ -14,15 +14,23 @@ import (
  * ================================================================================ */
 
 type (
-	App struct {
-		Name     string
-		Router   IHttpRouter
-		Settings *Settings
+	IApp interface {
+		GetName() string
+		GetSettings() *Settings
+		GetRouter() IHttpRouter
+	}
+)
+
+type (
+	app struct {
+		name     string
+		settings *Settings
+		router   IHttpRouter
 	}
 )
 
 var (
-	apps []*App
+	apps []IApp
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -30,25 +38,58 @@ var (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func init() {
 	fmt.Printf("%v ging app init\n", time.Now())
-	apps = make([]*App, 0)
+	apps = make([]IApp, 0)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 初始化App
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func NewApp(name string, settings *Settings, router IHttpRouter) IApp {
+	return &app{
+		name:     name,
+		settings: settings,
+		router:   router,
+	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取App Name
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) GetName() string {
+	return s.name
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取App Settings
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) GetSettings() *Settings {
+	return s.settings
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取Http Router
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) GetRouter() IHttpRouter {
+	return s.router
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 注册App
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func RegisterApp(args ...*App) error {
+func RegisterApp(args ...IApp) error {
+	fmt.Printf("%v ging app register\n", time.Now())
+
 	var err *CustomError
 
 	for _, currentApp := range args {
-		fmt.Printf("%v ging app register\n", time.Now())
-		if currentApp == nil || len(currentApp.Name) == 0 {
+		if currentApp == nil || len(currentApp.GetName()) == 0 {
 			err = NewCustomError("App名称不能为空")
 			break
 		}
 
 		isExists := false
 		for _, app := range apps {
-			if strings.ToLower(app.Name) == strings.ToLower(currentApp.Name) {
+			if strings.ToLower(app.GetName()) == strings.ToLower(currentApp.GetName()) {
 				isExists = true
 				break
 			}
@@ -63,34 +104,24 @@ func RegisterApp(args ...*App) error {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置App配置
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func SetAppSettings(name string, settings *Settings) error {
-	app, err := GetApp(name)
-	if err == nil {
-		app.Settings = settings
-	}
-
-	return err
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取App
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func GetApp(appName string) (*App, error) {
+func GetApp(name string) (IApp, error) {
+	fmt.Printf("%v ging get app\n", time.Now())
+
 	if len(apps) == 0 {
-		return nil, NewCustomError("未找到有效的App")
+		return nil, NewCustomError("The App Not Found")
 	}
 
-	if len(appName) == 0 {
-		return nil, NewCustomError("App名称参数不能为空")
+	if len(name) == 0 {
+		return nil, NewCustomError("The App Name Error")
 	}
 
 	for _, app := range apps {
-		if app.Name == strings.ToLower(appName) {
+		if app.GetName() == strings.ToLower(name) {
 			return app, nil
 		}
 	}
 
-	return nil, NewCustomError("未找到有效的App")
+	return nil, NewCustomError("The App Not Found")
 }

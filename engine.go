@@ -51,7 +51,7 @@ func NewHttpEngine(templatePath string, model string, isDebug bool) IHttpEngine 
 		}
 	}
 
-	//初始化httpEngine
+	//初始化HttpEngine
 	httpEngine := &httpEngine{
 		engine: gin.New(),
 	}

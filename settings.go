@@ -9,7 +9,6 @@ package ging
 type (
 	Settings struct {
 		WorkerNodeId int64                  //工作节点id
-		AppName      string                 //应用名称
 		Server       ServerOption           //服务器
 		Domain       DomainOption           //域名
 		Image        ImageOption            //图像
@@ -51,10 +50,11 @@ type (
 	 * 域名设置
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	DomainOption struct {
-		Res   string
-		Image string
-		Audio string
-		Video string
+		Web   string //网站域名
+		Res   string //资源域名
+		Image string //图片域名
+		Audio string //音频域名
+		Video string //视频域名
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -106,14 +106,14 @@ type (
 	 * 表单认证
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	FormsAuthenticationOption struct {
-		AuthorizeUrl    string             //身份授权Url
-		DefaultUrl      string             //默认返回地址
-		PassUrls        []string           //无需认证Url集合
-		Cookie          *FormsCookieOption //form cookie
-		LoginErrorCount int32              //最大连续错误次数
-		LockMinutes     int32              //锁定多少分钟
-		IsPersistence   bool               //是否持久会话
-		IsEnabled       bool               //是否开启登入
+		AuthorizeUrl     string             //身份授权Url
+		DefaultUrl       string             //默认返回地址
+		PassUrls         []string           //无需认证Url集合
+		Cookie           *FormsCookieOption //form cookie
+		LoginFailedCount int32              //最大连续登录失败次数
+		LockMinutes      int32              //锁定多少分钟
+		IsPersistence    bool               //是否持久会话
+		IsEnabled        bool               //是否开启登入
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -198,7 +198,7 @@ type (
 		ApiSecret            string //Api密匙
 		AccountSecret        string //账户密匙
 		EncryptKey           string //安全加密Key
-		VerifyWaitingMinutes int64  //验证等待多少分钟
+		VerifyWaitingMinutes int    //验证等待多少分钟
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

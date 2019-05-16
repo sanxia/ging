@@ -1,7 +1,7 @@
 package ging
 
 import (
-	"log"
+//"log"
 )
 
 import (
@@ -231,7 +231,7 @@ func (ctrl *Controller) Filter(filters ...IActionFilter) IController {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) getSession(ctx *gin.Context) session.ISession {
 	newSession := session.NewSession(ctx)
-	log.Printf("ctrl getSession: id: %s, values: %v", newSession.SessionId(), newSession.Values())
+	//log.Printf("ctrl getSession: id: %s, values: %v", newSession.SessionId(), newSession.Values())
 
 	return newSession
 }

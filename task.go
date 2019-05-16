@@ -1,11 +1,7 @@
-package task
+package ging
 
 import (
 	"errors"
-)
-
-import (
-	"github.com/sanxia/ging"
 )
 
 /* ================================================================================
@@ -16,47 +12,43 @@ import (
  * ================================================================================ */
 type (
 	ITaskCenter interface {
-		RegisterTask(channel, name string, task ITask) error
-		Start(channel string)
+		RegisterTask(appName, name string, task ITask) error
+		Start(app IApp)
 	}
 
 	ITask interface {
-		Run(settings *ging.Settings)
+		Run(app IApp)
 	}
 )
 
 type (
-	TaskCenter struct {
-		tasks    map[string]map[string]ITask
-		settings *ging.Settings
+	taskCenter struct {
+		tasks map[string]map[string]ITask
 	}
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 实例化TaskCenter
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewTaskCenter(settings *ging.Settings) ITaskCenter {
-	taskCenter := &TaskCenter{
-		tasks:    make(map[string]map[string]ITask, 0),
-		settings: settings,
+func NewTaskCenter() ITaskCenter {
+	return &taskCenter{
+		tasks: make(map[string]map[string]ITask, 0),
 	}
-
-	return taskCenter
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 注册任务
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (t *TaskCenter) RegisterTask(channel, name string, task ITask) error {
-	if len(channel) == 0 || len(name) == 0 {
+func (t *taskCenter) RegisterTask(appName, name string, task ITask) error {
+	if len(appName) == 0 || len(name) == 0 {
 		return errors.New("argments error")
 	}
 
-	if _, isOk := t.tasks[channel]; !isOk {
-		t.tasks[channel] = make(map[string]ITask, 0)
+	if _, isOk := t.tasks[appName]; !isOk {
+		t.tasks[appName] = make(map[string]ITask, 0)
 	}
 
-	if tasks, isOk := t.tasks[channel]; isOk {
+	if tasks, isOk := t.tasks[appName]; isOk {
 		if _, isOk := tasks[name]; isOk {
 			return errors.New("task name is exists")
 		} else {
@@ -70,13 +62,13 @@ func (t *TaskCenter) RegisterTask(channel, name string, task ITask) error {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 启动任务
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (t *TaskCenter) Start(channel string) {
-	tasks, isOk := t.tasks[channel]
+func (t *taskCenter) Start(app IApp) {
+	tasks, isOk := t.tasks[app.GetName()]
 	if !isOk {
 		return
 	}
 
 	for _, task := range tasks {
-		go task.Run(t.settings)
+		go task.Run(app)
 	}
 }

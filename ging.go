@@ -40,6 +40,7 @@ var (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func init() {
 	fmt.Printf("%v ging init\n", time.Now())
+
 	serverStatus = &ServerStatus{
 		Status: make(chan ServerStatus),
 	}
@@ -51,7 +52,6 @@ func init() {
 func Start(serverOption *ServerOption, router IHttpRouter) {
 	fmt.Printf("%v ging start\n", time.Now())
 
-	//Routines
 	for index, port := range serverOption.Ports {
 		host := "127.0.0.1"
 		if len(serverOption.Host) > 0 {
@@ -63,7 +63,6 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
 		}
 		addr := fmt.Sprintf("%s:%d", host, port)
 
-		//Http服务
 		go startServe(index, addr, router)
 	}
 
@@ -92,8 +91,10 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func startServe(index int, addr string, httpRouter IHttpRouter) {
 	log.Printf("%v ging start serve\n", time.Now())
+
 	routeHandler := httpRouter.Route()
-	server := &http.Server{
+
+	httpServer := &http.Server{
 		Addr:           addr,
 		Handler:        routeHandler,
 		ReadTimeout:    15 * time.Second,
@@ -107,5 +108,5 @@ func startServe(index int, addr string, httpRouter IHttpRouter) {
 		Now:   time.Now(),
 	}
 
-	server.ListenAndServe()
+	httpServer.ListenAndServe()
 }
