@@ -47,23 +47,25 @@ func init() {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 启动服务
+ * 启动App
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Start(serverOption *ServerOption, router IHttpRouter) {
+func Start(app IApp) {
 	fmt.Printf("%v ging start\n", time.Now())
 
-	for index, port := range serverOption.Ports {
-		host := "127.0.0.1"
-		if len(serverOption.Host) > 0 {
-			host = serverOption.Host
+	host := app.GetSettings().Server.Host
+	ports := app.GetSettings().Server.Ports
+	for index, port := range ports {
+		if len(host) == 0 {
+			host = "127.0.0.1"
 		}
 
 		if port == 0 {
 			port = 80
 		}
+
 		addr := fmt.Sprintf("%s:%d", host, port)
 
-		go startServe(index, addr, router)
+		go httpServe(index, addr, app.GetRouter())
 	}
 
 	index := 0
@@ -73,7 +75,7 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
 		info := fmt.Sprintf("%v ging server %02d on %s Success", server.Now, server.Index, server.Addr)
 		log.Println(info)
 
-		if index == len(serverOption.Ports) {
+		if index == len(ports) {
 			close(serverStatus.Status)
 		}
 	}
@@ -89,7 +91,7 @@ func Start(serverOption *ServerOption, router IHttpRouter) {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 提供Http服务
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func startServe(index int, addr string, httpRouter IHttpRouter) {
+func httpServe(index int, addr string, httpRouter IHttpRouter) {
 	log.Printf("%v ging start serve\n", time.Now())
 
 	routeHandler := httpRouter.Route()

@@ -21,8 +21,8 @@ import (
  * ================================================================================ */
 type (
 	IFileStorage interface {
-		UploadFile(data []byte, fileExtName string, args ...bool) (*File, error)
-		DeleteFile(filename string, args ...bool) error
+		Upload(data []byte, fileExtName string, args ...bool) (*File, error)
+		Delete(filename string, args ...bool) error
 	}
 
 	IDiskStorage interface {
@@ -64,7 +64,7 @@ func NewFileStorage(settings *Settings) IFileStorage {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 上传文件
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *fileStorage) UploadFile(data []byte, fileExtName string, args ...bool) (*File, error) {
+func (s *fileStorage) Upload(data []byte, fileExtName string, args ...bool) (*File, error) {
 	isToDisk := true
 	if len(args) > 0 {
 		isToDisk = args[0]
@@ -80,7 +80,7 @@ func (s *fileStorage) UploadFile(data []byte, fileExtName string, args ...bool) 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 删除文件
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *fileStorage) DeleteFile(filename string, args ...bool) error {
+func (s *fileStorage) Delete(filename string, args ...bool) error {
 	isToDisk := true
 	if len(args) > 0 {
 		isToDisk = args[0]

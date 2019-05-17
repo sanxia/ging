@@ -106,22 +106,16 @@ func RegisterApp(args ...IApp) error {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 获取App
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func GetApp(name string) (IApp, error) {
+func GetApp(name string) IApp {
 	fmt.Printf("%v ging get app\n", time.Now())
 
-	if len(apps) == 0 {
-		return nil, NewCustomError("The App Not Found")
-	}
-
-	if len(name) == 0 {
-		return nil, NewCustomError("The App Name Error")
-	}
-
-	for _, app := range apps {
-		if app.GetName() == strings.ToLower(name) {
-			return app, nil
+	if len(apps) != 0 && len(name) != 0 {
+		for _, app := range apps {
+			if app.GetName() == strings.ToLower(name) {
+				return app
+			}
 		}
 	}
 
-	return nil, NewCustomError("The App Not Found")
+	return nil
 }
