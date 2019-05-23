@@ -41,11 +41,23 @@ type (
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	Controller struct {
-		Engine    IHttpEngine
 		GroupName string
+		Engine    IHttpEngine
 		filters   []IActionFilter
 	}
 )
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 初始化控制器
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func NewController(groupName string, engine IHttpEngine, args ...IActionFilter) IController {
+	controller := &Controller{
+		GroupName: groupName,
+		Engine:    engine,
+	}
+
+	return controller.Filter(args...)
+}
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * IHttpAction接口实现 － Http Get请求

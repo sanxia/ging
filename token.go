@@ -46,14 +46,15 @@ type (
 	}
 
 	TokenPayload struct {
-		UserId          string   `json:"sub"`              //用户id
-		Username        string   `json:"username"`         //用户名
-		Nickname        string   `json:"nickname"`         //用户昵称
-		Avatar          string   `json:"avatar"`           //用户图像
-		Roles           []string `json:"roles"`            //角色名集合
-		Start           int64    `json:"iat"`              //签发时间（距离1970-1-1的秒数）
-		Expires         int64    `json:"exp"`              //过期时间（距离1970-1-1的秒数）
-		IsAuthenticated bool     `json:"is_authenticated"` //是否已验证
+		UserId          string                 `json:"sub"`              //用户id
+		Username        string                 `json:"username"`         //用户名
+		Nickname        string                 `json:"nickname"`         //用户昵称
+		Avatar          string                 `json:"avatar"`           //用户图像
+		Roles           []string               `json:"roles"`            //角色名集合
+		Extend          map[string]interface{} `json:"extend"`           //扩展数据
+		Start           int64                  `json:"iat"`              //签发时间（距离1970-1-1的秒数）
+		Expires         int64                  `json:"exp"`              //过期时间（距离1970-1-1的秒数）
+		IsAuthenticated bool                   `json:"is_authenticated"` //是否已验证
 	}
 
 	Cookie struct {

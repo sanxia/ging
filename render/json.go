@@ -34,6 +34,7 @@ func Json(c *gin.Context, args ...interface{}) {
 		statusCode = args[1].(int)
 		isAbort = args[2].(bool)
 	}
+
 	c.JSON(statusCode, data)
 
 	if isAbort {

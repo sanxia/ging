@@ -44,7 +44,7 @@ type (
 	}
 
 	File struct {
-		Id   int64  `form:"id" json:"id"`
+		Id   string `form:"id" json:"id"`
 		Path string `form:"path" json:"path"`
 		Data []byte `form:"data" json:"-"`
 		Size int64  `form:"size" json:"-"`
@@ -59,6 +59,20 @@ func NewFileStorage(settings *Settings) IFileStorage {
 	return &fileStorage{
 		settings: settings,
 	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取int64值
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *File) IdInt64() int64 {
+	return glib.StringToInt64(s.Id)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置int64值
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *File) SetIdInt64(id int64) {
+	s.Id = glib.Int64ToString(id)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
