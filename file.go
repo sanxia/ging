@@ -21,16 +21,26 @@ import (
  * ================================================================================ */
 type (
 	IFileStorage interface {
+		IFilePath
+		IFileOperation
+	}
+
+	IFilePath interface {
+		UrlToPath(url string, args ...string) string
+		PathToUrl(path string, args ...string) string
+	}
+
+	IFileOperation interface {
 		Upload(data []byte, fileExtName string, args ...bool) (*File, error)
 		Delete(filename string, args ...bool) error
 	}
 
-	IDiskStorage interface {
+	IDiskFileOperation interface {
 		UploadFileToDisk(data []byte, fileExtName string) (*File, error)
 		DeleteDiskFile(filename string) error
 	}
 
-	IFdfsStorage interface {
+	IFdfsFileOperation interface {
 		GetFileByFileId(fileId string) (*File, error)
 		UploadFileToFdfs(data []byte, fileExtName string) (*File, error)
 		DeleteFileByFileId(fileId string) error
@@ -46,6 +56,7 @@ type (
 	File struct {
 		Id   string `form:"id" json:"id"`
 		Path string `form:"path" json:"path"`
+		Url  string `form:"url" json:"-"`
 		Data []byte `form:"data" json:"-"`
 		Size int64  `form:"size" json:"-"`
 	}
@@ -59,20 +70,6 @@ func NewFileStorage(settings *Settings) IFileStorage {
 	return &fileStorage{
 		settings: settings,
 	}
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取int64值
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *File) IdInt64() int64 {
-	return glib.StringToInt64(s.Id)
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置int64值
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *File) SetIdInt64(id int64) {
-	s.Id = glib.Int64ToString(id)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -125,7 +122,8 @@ func (s *fileStorage) UploadFileToDisk(data []byte, fileExtName string) (*File, 
 	relativePath := glib.GetRelativePath(fullFilename)
 
 	file := new(File)
-	file.Path = s.ResourcePathToResourceUrl(relativePath, resourceCode)
+	file.Path = relativePath
+	file.Url = s.PathToUrl(relativePath, resourceCode)
 
 	return file, nil
 }
@@ -139,10 +137,15 @@ func (s *fileStorage) DeleteDiskFile(filename string) error {
 	}
 
 	if strings.HasPrefix(filename, "http://") {
-		filename = s.ResourceUrlToResourcePath(filename)
+		filename = s.UrlToPath(filename)
 	}
 
-	err := glib.DeleteFile(filename, s.settings.Storage.Upload.Root)
+	fileRoot := ""
+	if !strings.HasPrefix(filename, s.settings.Storage.Upload.Root) {
+		fileRoot = s.settings.Storage.Upload.Root
+	}
+
+	err := glib.DeleteFile(filename, fileRoot)
 
 	return err
 }
@@ -192,7 +195,8 @@ func (s *fileStorage) UploadFileToFdfs(data []byte, fileExtName string) (*File, 
 	resourceCode := s.FileExtNameToResourceCode(fileExtName)
 
 	file := new(File)
-	file.Path = s.ResourcePathToResourceUrl(uploadResponse.FileId, resourceCode)
+	file.Path = uploadResponse.FileId
+	file.Url = s.PathToUrl(uploadResponse.FileId, resourceCode)
 
 	return file, nil
 
@@ -209,7 +213,7 @@ func (s *fileStorage) DeleteFileByFileId(fileId string) error {
 	}
 
 	if strings.HasPrefix(fileId, "http://") {
-		fileId = s.ResourceUrlToResourcePath(fileId)
+		fileId = s.UrlToPath(fileId)
 	}
 
 	err := s.client.DeleteFile(fileId)
@@ -223,7 +227,7 @@ func (s *fileStorage) DeleteFileByFileId(fileId string) error {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 根据文件物理路径和资源编码获取文件Url地址
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *fileStorage) ResourcePathToResourceUrl(path string, args ...string) string {
+func (s *fileStorage) PathToUrl(path string, args ...string) string {
 	domain, url := "", s.settings.Image.Default
 	resourceCode := "image"
 	if len(args) == 1 {
@@ -260,7 +264,7 @@ func (s *fileStorage) ResourcePathToResourceUrl(path string, args ...string) str
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 根据Url和资源编码获取文件相对物理路径
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *fileStorage) ResourceUrlToResourcePath(url string, args ...string) string {
+func (s *fileStorage) UrlToPath(url string, args ...string) string {
 	domain, path := "", ""
 	resourceCode := "image"
 	if len(args) == 1 {
@@ -369,4 +373,18 @@ func (s *fileStorage) initFdfsClient() {
 			s.client = client
 		}
 	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取int64值
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *File) IdInt64() int64 {
+	return glib.StringToInt64(s.Id)
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 设置int64值
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *File) SetIdInt64(id int64) {
+	s.Id = glib.Int64ToString(id)
 }
