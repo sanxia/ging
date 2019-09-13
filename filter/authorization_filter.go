@@ -66,7 +66,7 @@ func (s *authorizationFilter) Before(ctx *gin.Context) ging.IActionResult {
 	isAjax := ging.IsAjax(ctx)
 
 	//获取当前用户标识
-	if userIdentity, isOk := ctx.Get(ging.USER_IDENTITY); userIdentity != nil && isOk {
+	if userIdentity, isOk := ctx.Get(ging.TOKEN_IDENTITY); userIdentity != nil && isOk {
 		if tokenIdentity, isOk := userIdentity.(*ging.Token); isOk {
 			userToken = tokenIdentity
 		}

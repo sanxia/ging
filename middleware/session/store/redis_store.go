@@ -57,8 +57,8 @@ func (s *redisStore) Options(cookie *CookieOption) {
 		Path:     cookie.Path,
 		Domain:   cookie.Domain,
 		MaxAge:   cookie.MaxAge,
-		Secure:   cookie.Secure,
-		HttpOnly: cookie.HttpOnly,
+		Secure:   cookie.IsSecure,
+		HttpOnly: cookie.IsHttpOnly,
 	}
 
 	s.SetMaxAge(cookie.MaxAge)

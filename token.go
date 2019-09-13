@@ -18,7 +18,7 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 const (
-	USER_IDENTITY string = "__ging_u__"
+	TOKEN_IDENTITY string = "__ging_u__"
 )
 
 type (
@@ -41,7 +41,7 @@ type (
 type (
 	Token struct {
 		payload   *TokenPayload //载荷
-		signature string        //签名指纹
+		signature string        //签名
 		secret    string        //秘匙
 	}
 
@@ -55,15 +55,6 @@ type (
 		Start           int64                  `json:"iat"`              //签发时间（距离1970-1-1的秒数）
 		Expires         int64                  `json:"exp"`              //过期时间（距离1970-1-1的秒数）
 		IsAuthenticated bool                   `json:"is_authenticated"` //是否已验证
-	}
-
-	Cookie struct {
-		Name     string
-		Path     string
-		Domain   string
-		MaxAge   int
-		HttpOnly bool
-		Secure   bool
 	}
 )
 

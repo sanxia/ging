@@ -1,10 +1,6 @@
 package ging
 
 import (
-//"log"
-)
-
-import (
 	"github.com/gin-gonic/gin"
 	"github.com/sanxia/ging/middleware/session"
 )
@@ -141,7 +137,7 @@ func (ctrl *Controller) Head(path string, actionHandler ActionHandler, args ...i
  * 控制器动作
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{}) func(*gin.Context) {
-	return func(context *gin.Context) {
+	return func(ctx *gin.Context) {
 		var actionFilters IActionFilterList
 		var filterResult IActionResult
 
@@ -177,7 +173,7 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 			//Before返回非空IActionResult即终止
 			for _, filter := range ctrl.filters {
 				if filter != nil {
-					if filterResult = filter.Before(context); filterResult != nil {
+					if filterResult = filter.Before(ctx); filterResult != nil {
 						break
 					}
 				}
@@ -187,7 +183,7 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 				//顺序执行之前的动作过滤器
 				for _, filter := range actionFilters {
 					if filter != nil {
-						if filterResult = filter.Before(context); filterResult != nil {
+						if filterResult = filter.Before(ctx); filterResult != nil {
 							break
 						}
 					}
@@ -197,21 +193,21 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 
 		if filterResult != nil {
 			filterResult.Render()
-			context.Abort()
+			ctx.Abort()
 			return
 		} else {
-			actionHandler(context).Render()
+			actionHandler(ctx).Render()
 		}
 
 		if isFilterEnabled {
 			//逆序执行之后的动作过滤器
 			for i := len(actionFilters) - 1; i >= 0; i-- {
-				actionFilters[i].After(context)
+				actionFilters[i].After(ctx)
 			}
 
 			//逆序执行之后的控制器过滤器
 			for i := len(ctrl.filters) - 1; i >= 0; i-- {
-				ctrl.filters[i].After(context)
+				ctrl.filters[i].After(ctx)
 			}
 		}
 	}
@@ -338,15 +334,15 @@ func (ctrl *Controller) ClearSession(ctx *gin.Context) {
  * 获取Token接口
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) GetToken(ctx *gin.Context) IToken {
-	var userToken IToken
+	var currentToken IToken
 
 	if ctx != nil {
-		if userIdentity, isOk := ctx.Get(USER_IDENTITY); userIdentity != nil && isOk {
-			if tokenIdentity, isOk := userIdentity.(*Token); isOk {
-				userToken = tokenIdentity
+		if tokenIdentity, isOk := ctx.Get(TOKEN_IDENTITY); tokenIdentity != nil && isOk {
+			if userToken, isOk := tokenIdentity.(*Token); isOk {
+				currentToken = userToken
 			}
 		}
 	}
 
-	return userToken
+	return currentToken
 }

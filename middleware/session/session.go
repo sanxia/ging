@@ -158,7 +158,7 @@ func (s *session) Options(cookie store.CookieOption) {
 		Path:     cookie.Path,
 		Domain:   cookie.Domain,
 		MaxAge:   cookie.MaxAge,
-		Secure:   cookie.Secure,
-		HttpOnly: cookie.HttpOnly,
+		Secure:   cookie.IsSecure,
+		HttpOnly: cookie.IsHttpOnly,
 	}
 }

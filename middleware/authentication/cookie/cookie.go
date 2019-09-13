@@ -125,7 +125,7 @@ func (cookieAuth *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdenti
 		expiresDate := time.Now().Add(time.Duration(maxAge) * time.Second)
 		tokenIdentity.SetExpires(expiresDate.Unix())
 
-		tokenName := ging.USER_IDENTITY
+		tokenName := ging.TOKEN_IDENTITY
 		if len(cookieAuth.Extend.Cookie.Name) > 0 {
 			tokenName = cookieAuth.Extend.Cookie.Name
 		}
@@ -149,7 +149,7 @@ func (cookieAuth *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdenti
 	}
 
 	//传递Token标识
-	ctx.Set(ging.USER_IDENTITY, tokenIdentity)
+	ctx.Set(ging.TOKEN_IDENTITY, tokenIdentity)
 	ctx.Next()
 }
 
@@ -157,7 +157,7 @@ func (cookieAuth *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdenti
  * 清除Cookie
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (cookieAuth *cookieAuthentication) ClearCookie(ctx *gin.Context) {
-	tokenName := ging.USER_IDENTITY
+	tokenName := ging.TOKEN_IDENTITY
 	if len(cookieAuth.Extend.Cookie.Name) > 0 {
 		tokenName = cookieAuth.Extend.Cookie.Name
 	}
@@ -180,7 +180,7 @@ func (cookieAuth *cookieAuthentication) ClearCookie(ctx *gin.Context) {
 	http.SetCookie(ctx.Writer, &tokenCookie)
 
 	//清空Token标识
-	ctx.Set(ging.USER_IDENTITY, nil)
+	ctx.Set(ging.TOKEN_IDENTITY, nil)
 	ctx.Next()
 }
 
@@ -229,7 +229,7 @@ func (cookieAuth *cookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool 
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (cookieAuth *cookieAuthentication) parseTokenIdentity(ctx *gin.Context) (ging.IToken, error) {
 	tokenIdentity := ging.NewToken(cookieAuth.Extend.EncryptKey)
-	tokenName := ging.USER_IDENTITY
+	tokenName := ging.TOKEN_IDENTITY
 	tokenValue := ""
 
 	if len(cookieAuth.Extend.Cookie.Name) > 0 {

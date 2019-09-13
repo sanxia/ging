@@ -17,7 +17,7 @@ type (
 		Timestamp int64           `form:"timestamp" json:"timestamp"` //unix时间戳，单位秒
 	}
 
-	//消息载荷
+	//消息负载
 	MessagePayload struct {
 		UserId   string `form:"user_id" json:"user_id"`     //用户id
 		TargetId string `form:"target_id" json:"target_id"` //目标id

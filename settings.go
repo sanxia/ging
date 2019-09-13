@@ -106,35 +106,23 @@ type (
 	 * 表单认证
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	FormsAuthenticationOption struct {
-		AuthorizeUrl     string             //身份授权Url
-		DefaultUrl       string             //默认返回地址
-		PassUrls         []string           //无需认证Url集合
-		Cookie           *FormsCookieOption //form cookie
-		LoginFailedCount int32              //最大连续登录失败次数
-		LockMinutes      int32              //锁定多少分钟
-		IsPersistence    bool               //是否持久会话
-		IsEnabled        bool               //是否开启登入
-	}
-
-	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	 * 表单Cookie
-	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-	FormsCookieOption struct {
-		Name     string //客户端Cookie名称
-		Path     string //客户端Cookie路径
-		Domain   string //客户端Cookie域
-		MaxAge   int    //过期时长（单位：秒）
-		HttpOnly bool   //是否只能http读取
-		Secure   bool   //是否https
+		AuthorizeUrl     string   //身份授权Url
+		DefaultUrl       string   //默认返回地址
+		PassUrls         []string //无需认证Url集合
+		Cookie           *Cookie  //cookie
+		LoginFailedCount int32    //最大连续登录失败次数
+		LockMinutes      int32    //锁定多少分钟
+		IsPersistence    bool     //是否持久会话
+		IsEnabled        bool     //是否开启登入
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	 * 会话选项
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	SessionOption struct {
-		Cookie     *FormsCookieOption //form cookie
-		RedisStore RedisStoreOption   //Redis存储会话
-		StoreType  string             //会话存储类型码
+		Cookie     *Cookie          //cookie
+		RedisStore RedisStoreOption //Redis存储会话
+		StoreType  string           //会话存储类型码
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

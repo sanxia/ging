@@ -134,7 +134,8 @@ func (tokenAuth *tokenAuthentication) SaveToken(ctx *gin.Context, tokenIdentity 
 	}
 
 	//传递Token标识
-	ctx.Set(ging.USER_IDENTITY, tokenIdentity)
+	ctx.Set(ging.TOKEN_IDENTITY, tokenIdentity)
+
 	ctx.Next()
 }
 
@@ -148,7 +149,7 @@ func (tokenAuth *tokenAuthentication) SaveTokenCookie(ctx *gin.Context, tokenTic
 		maxAge = tokenAuth.Extend.Cookie.MaxAge
 	}
 
-	tokenName := ging.USER_IDENTITY
+	tokenName := ging.TOKEN_IDENTITY
 	if len(tokenAuth.Extend.Cookie.Name) > 0 {
 		tokenName = tokenAuth.Extend.Cookie.Name
 	}
@@ -164,8 +165,8 @@ func (tokenAuth *tokenAuthentication) SaveTokenCookie(ctx *gin.Context, tokenTic
 		Path:     path,
 		Domain:   tokenAuth.Extend.Cookie.Domain,
 		MaxAge:   maxAge,
-		HttpOnly: tokenAuth.Extend.Cookie.HttpOnly,
-		Secure:   tokenAuth.Extend.Cookie.Secure,
+		HttpOnly: tokenAuth.Extend.Cookie.IsHttpOnly,
+		Secure:   tokenAuth.Extend.Cookie.IsSecure,
 	}
 
 	http.SetCookie(ctx.Writer, &tokenCookie)
@@ -175,7 +176,7 @@ func (tokenAuth *tokenAuthentication) SaveTokenCookie(ctx *gin.Context, tokenTic
  * 写入Token令牌到客户端响应头
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (tokenAuth *tokenAuthentication) SaveTokenHeader(ctx *gin.Context, tokenTicket string) {
-	tokenName := ging.USER_IDENTITY
+	tokenName := ging.TOKEN_IDENTITY
 	if len(tokenAuth.Extend.Cookie.Name) > 0 {
 		tokenName = tokenAuth.Extend.Cookie.Name
 	}
@@ -187,9 +188,9 @@ func (tokenAuth *tokenAuthentication) SaveTokenHeader(ctx *gin.Context, tokenTic
  * 清除Token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (tokenAuth *tokenAuthentication) ClearToken(ctx *gin.Context) {
-	tokenName := ging.USER_IDENTITY
+	tokenCookieName := ging.TOKEN_IDENTITY
 	if len(tokenAuth.Extend.Cookie.Name) > 0 {
-		tokenName = tokenAuth.Extend.Cookie.Name
+		tokenCookieName = tokenAuth.Extend.Cookie.Name
 	}
 
 	if tokenAuth.Extend.IsCookie {
@@ -199,21 +200,22 @@ func (tokenAuth *tokenAuthentication) ClearToken(ctx *gin.Context) {
 		}
 
 		tokenCookie := http.Cookie{
-			Name:     tokenName,
+			Name:     tokenCookieName,
 			Value:    "",
 			Path:     path,
 			Domain:   tokenAuth.Extend.Cookie.Domain,
 			MaxAge:   -1,
-			HttpOnly: tokenAuth.Extend.Cookie.HttpOnly,
-			Secure:   tokenAuth.Extend.Cookie.Secure,
+			HttpOnly: tokenAuth.Extend.Cookie.IsHttpOnly,
+			Secure:   tokenAuth.Extend.Cookie.IsSecure,
 		}
 		http.SetCookie(ctx.Writer, &tokenCookie)
 	} else {
-		ctx.Header(tokenName, "")
+		ctx.Header(tokenCookieName, "")
 	}
 
 	//清空Token标识
-	ctx.Set(ging.USER_IDENTITY, nil)
+	ctx.Set(ging.TOKEN_IDENTITY, nil)
+
 	ctx.Next()
 }
 
@@ -262,7 +264,7 @@ func (tokenAuth *tokenAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (tokenAuth *tokenAuthentication) parseTokenIdentity(ctx *gin.Context) (ging.IToken, error) {
 	tokenIdentity := ging.NewToken(tokenAuth.Extend.EncryptKey)
-	tokenName := ging.USER_IDENTITY
+	tokenName := ging.TOKEN_IDENTITY
 	tokenValue := ""
 
 	if len(tokenAuth.Extend.Cookie.Name) > 0 {

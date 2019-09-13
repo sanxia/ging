@@ -20,17 +20,17 @@ type (
 		Options(*CookieOption)
 	}
 
-	CookieOption struct {
-		Name     string
-		Path     string
-		Domain   string
-		MaxAge   int
-		HttpOnly bool
-		Secure   bool
-	}
-
 	cookieStore struct {
 		*sessions.CookieStore
+	}
+
+	CookieOption struct {
+		Name       string `json:"name"`
+		Path       string `json:"path"`
+		Domain     string `json:"domain"`
+		MaxAge     int    `json:"max_age"`
+		IsHttpOnly bool   `json:"is_http_only"`
+		IsSecure   bool   `json:"is_secure"`
 	}
 )
 
@@ -49,7 +49,7 @@ func (s *cookieStore) Options(cookie *CookieOption) {
 		Path:     cookie.Path,
 		Domain:   cookie.Domain,
 		MaxAge:   cookie.MaxAge,
-		Secure:   cookie.Secure,
-		HttpOnly: cookie.HttpOnly,
+		Secure:   cookie.IsSecure,
+		HttpOnly: cookie.IsHttpOnly,
 	}
 }
