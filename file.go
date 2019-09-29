@@ -49,8 +49,7 @@ type (
 
 type (
 	fileStorage struct {
-		client   *gfs.FdfsClient
-		settings *Settings
+		client *gfs.FdfsClient
 	}
 
 	File struct {
@@ -66,10 +65,8 @@ type (
  * 初始化FileStorage
  * author: smalltour - 老牛|共生美好
  * ================================================================================ */
-func NewFileStorage(settings *Settings) IFileStorage {
-	return &fileStorage{
-		settings: settings,
-	}
+func NewFileStorage() IFileStorage {
+	return &fileStorage{}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -111,7 +108,7 @@ func (s *fileStorage) UploadFileToDisk(data []byte, fileExtName string) (*File, 
 	filename := glib.Guid() + "." + fileExtName
 
 	//保存文件
-	fullFilename, err := glib.SaveFile(data, filename, s.settings.Storage.Upload.Root)
+	fullFilename, err := glib.SaveFile(data, filename, GetApp().GetSetting().Storage.Upload.Root)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +138,8 @@ func (s *fileStorage) DeleteDiskFile(filename string) error {
 	}
 
 	fileRoot := ""
-	if !strings.HasPrefix(filename, s.settings.Storage.Upload.Root) {
-		fileRoot = s.settings.Storage.Upload.Root
+	if !strings.HasPrefix(filename, GetApp().GetSetting().Storage.Upload.Root) {
+		fileRoot = GetApp().GetSetting().Storage.Upload.Root
 	}
 
 	err := glib.DeleteFile(filename, fileRoot)
@@ -199,7 +196,6 @@ func (s *fileStorage) UploadFileToFdfs(data []byte, fileExtName string) (*File, 
 	file.Url = s.PathToUrl(uploadResponse.FileId, resourceCode)
 
 	return file, nil
-
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -228,34 +224,41 @@ func (s *fileStorage) DeleteFileByFileId(fileId string) error {
  * 根据文件物理路径和资源编码获取文件Url地址
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *fileStorage) PathToUrl(path string, args ...string) string {
-	domain, url := "", s.settings.Image.Default
+	domain, url := "", GetApp().GetSetting().Image.Default
 	resourceCode := "image"
 	if len(args) == 1 {
 		resourceCode = strings.ToLower(args[0])
 	}
 
-	domains := make(map[string]string, 0)
-	domains["image"] = s.settings.Domain.Image
-	domains["audio"] = s.settings.Domain.Audio
-	domains["video"] = s.settings.Domain.Video
+	hosts := make(map[string]string, 0)
+	hosts["image"] = GetApp().GetSetting().Domain.ImageHost
+	hosts["audio"] = GetApp().GetSetting().Domain.AudioHost
+	hosts["video"] = GetApp().GetSetting().Domain.VideoHost
+	hosts["file"] = GetApp().GetSetting().Domain.FileHost
 
-	if host, isOk := domains[resourceCode]; isOk {
+	if host, isOk := hosts[resourceCode]; isOk {
 		domain = host
+	}
+
+	if GetApp().GetSetting().Domain.IsSsl {
+		domain = fmt.Sprintf("%s://%s", "https", domain)
+	} else {
+		domain = fmt.Sprintf("%s://%s", "http", domain)
 	}
 
 	if len(path) > 0 {
 		if strings.HasPrefix(path, "group") {
 			path = s.FileIdToFilePath(path)
 		} else {
-			staticPaths := strings.Split(s.settings.Storage.Upload.Root, string(os.PathSeparator))
-			if !strings.HasPrefix(path, s.settings.Storage.Upload.Root) {
-				path = filepath.Join(s.settings.Storage.Upload.Root, path)
+			staticPaths := strings.Split(GetApp().GetSetting().Storage.Upload.Root, string(os.PathSeparator))
+			if !strings.HasPrefix(path, GetApp().GetSetting().Storage.Upload.Root) {
+				path = filepath.Join(GetApp().GetSetting().Storage.Upload.Root, path)
 			}
 
 			//文件路径替换成url路由
-			path = strings.Replace(path, staticPaths[0], s.settings.Storage.Static.File, -1)
+			path = strings.Replace(path, staticPaths[0], GetApp().GetSetting().Storage.Static.File, -1)
 		}
-		url = domain + string(os.PathSeparator) + path
+		url = fmt.Sprintf("%s/%s", domain, path)
 	}
 
 	return url
@@ -271,22 +274,25 @@ func (s *fileStorage) UrlToPath(url string, args ...string) string {
 		resourceCode = strings.ToLower(args[0])
 	}
 
-	domains := make(map[string]string, 0)
-	domains["image"] = s.settings.Domain.Image
-	domains["audio"] = s.settings.Domain.Audio
-	domains["video"] = s.settings.Domain.Video
+	hosts := make(map[string]string, 0)
+	hosts["image"] = GetApp().GetSetting().Domain.ImageHost
+	hosts["audio"] = GetApp().GetSetting().Domain.AudioHost
+	hosts["video"] = GetApp().GetSetting().Domain.VideoHost
+	hosts["file"] = GetApp().GetSetting().Domain.FileHost
 
-	if host, isOk := domains[resourceCode]; isOk {
+	if host, isOk := hosts[resourceCode]; isOk {
 		domain = host
 	}
 
 	if len(url) > 0 {
+		url = glib.FilterHostProtocol(url)
 		url = strings.Replace(url, domain, "", -1)
+
 		if strings.HasPrefix(url, string(os.PathSeparator)) {
 			url = url[1:]
 		}
 
-		fdfsRouter := s.settings.Storage.Static.Fdfs + string(os.PathSeparator)
+		fdfsRouter := GetApp().GetSetting().Storage.Static.Fdfs + string(os.PathSeparator)
 		if strings.HasPrefix(url, fdfsRouter) {
 			path = s.FilePathToFileId(url)
 		} else {
@@ -367,7 +373,7 @@ func (s *fileStorage) FileExtNameToResourceCode(fileExtName string) string {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *fileStorage) initFdfsClient() {
 	if s.client == nil {
-		if client, err := gfs.NewFdfsClient(s.settings.Storage.Fdfs.TrackerHosts); err != nil {
+		if client, err := gfs.NewFdfsClient(GetApp().GetSetting().Storage.Server.Trackers); err != nil {
 			fmt.Printf("fdfs client error: %v\n", err)
 		} else {
 			s.client = client

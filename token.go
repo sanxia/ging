@@ -12,7 +12,7 @@ import (
 )
 
 /* ================================================================================
- * Token标识数据域结构
+ * Token identity
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -59,7 +59,7 @@ type (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 初始化Token标识
+ * instantiating token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewToken(secret string) *Token {
 	return &Token{
@@ -69,7 +69,7 @@ func NewToken(secret string) *Token {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取Token字符串
+ * get token string
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) GetToken() string {
 	tokenTicket := ""
@@ -83,7 +83,7 @@ func (s *Token) GetToken() string {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Parse Token
+ * parse token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) ParseToken(token string) error {
 	if len(token) == 0 {
@@ -133,21 +133,21 @@ func (s *Token) ParseToken(token string) error {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取Payload
+ * get payload
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) GetPayload() *TokenPayload {
 	return s.payload
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置Payload
+ * set payload
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) SetPayload(payload *TokenPayload) {
 	s.payload = payload
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置Expires
+ * set expires
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) SetExpires(expires int64) {
 	s.payload.Start = time.Now().Unix()
@@ -160,14 +160,14 @@ func (s *Token) SetExpires(expires int64) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置是否已认证
+ * set is certified
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) SetAuthenticated(isAuthenticated bool) {
 	s.payload.IsAuthenticated = isAuthenticated
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取Token签名
+ * get token signature
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) tokenSignature() string {
 	signature := ""
@@ -181,7 +181,7 @@ func (s *Token) tokenSignature() string {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Token是否已认证
+ * is certified
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) IsAuthenticated() bool {
 	isAuthenticated := s.payload.IsAuthenticated
@@ -189,7 +189,7 @@ func (s *Token) IsAuthenticated() bool {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Token签名是否有效
+ * token signature is valid
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) IsValid() bool {
 	isValid := false
@@ -201,7 +201,7 @@ func (s *Token) IsValid() bool {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Token是否已过期
+ * has token expired
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) IsExpired() bool {
 	isExpired := false
@@ -231,7 +231,7 @@ func (s *TokenPayload) UserIdInt64() int64 {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * TokenPayload json序列化
+ * TokenPayload json serialization
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *TokenPayload) Serialize() (string, error) {
 	jsonString, err := glib.ToJson(s)
@@ -243,7 +243,7 @@ func (s *TokenPayload) Serialize() (string, error) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * TokenPayload json反序列化
+ * TokenPayload json deserialization
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *TokenPayload) Deserialize(payload string) error {
 	return glib.FromJson(payload, &s)

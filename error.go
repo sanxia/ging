@@ -1,7 +1,7 @@
 package ging
 
 /* ================================================================================
- * 错误数据域结构
+ * Custom Error
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -12,7 +12,7 @@ type CustomError struct {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 实例化自定义错误
+ * instantiate custom error
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewCustomError(msg string) *CustomError {
 	return &CustomError{
@@ -22,7 +22,7 @@ func NewCustomError(msg string) *CustomError {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 实例化自定义错误
+ * instantiate custom error
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewError(code int32, msg string) *CustomError {
 	return &CustomError{
@@ -32,7 +32,7 @@ func NewError(code int32, msg string) *CustomError {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * error接口实现
+ * error interface implementation
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (err CustomError) Error() string {
 	return err.Msg

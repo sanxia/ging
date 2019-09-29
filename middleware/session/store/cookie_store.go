@@ -5,7 +5,7 @@ import (
 )
 
 /* ================================================================================
- * Cookie存储接口模块
+ * cookie store interface
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -17,7 +17,7 @@ type (
 
 	ICookieStore interface {
 		IStore
-		Options(*CookieOption)
+		Options(CookieOption)
 	}
 
 	cookieStore struct {
@@ -44,7 +44,7 @@ func NewCookieStore(keyPairs ...[]byte) ICookieStore {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Cookie存储选项
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *cookieStore) Options(cookie *CookieOption) {
+func (s *cookieStore) Options(cookie CookieOption) {
 	s.CookieStore.Options = &sessions.Options{
 		Path:     cookie.Path,
 		Domain:   cookie.Domain,

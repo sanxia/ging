@@ -9,7 +9,7 @@ import (
 )
 
 /* ================================================================================
- * Redis存储接口模块
+ * redis store interface
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -17,7 +17,7 @@ import (
 type (
 	IRedisStore interface {
 		IStore
-		Options(*CookieOption)
+		Options(CookieOption)
 	}
 
 	RedisOption struct {
@@ -25,6 +25,7 @@ type (
 		Port     int
 		Password string
 		Prefix   string
+		Db       int
 	}
 
 	redisStore struct {
@@ -35,15 +36,15 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * Session会话Cookie存储
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRedisStore(ip string, port int, password, prefixKey string, encryptKey []byte) IRedisStore {
+func NewRedisStore(ip string, port int, password, prefixKey string, encryptKey []byte, dbIndex int) IRedisStore {
 	host := fmt.Sprintf("%s:%d", ip, port)
-	redisStoreImpl, err := NewRedisStoreImpl(10, "tcp", host, password, encryptKey)
+	redisStoreImpl, err := NewRedisStoreImpl("tcp", host, password, encryptKey, 10, dbIndex)
 	if err != nil {
 		panic(fmt.Sprintf("connect redis error: %v", err))
 	}
 
 	if len(prefixKey) > 0 {
-		redisStoreImpl.SetKeyPrefix(prefixKey)
+		redisStoreImpl.SetPrefix(prefixKey)
 	}
 
 	return &redisStore{redisStoreImpl}
@@ -52,7 +53,7 @@ func NewRedisStore(ip string, port int, password, prefixKey string, encryptKey [
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Redis存储选项
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *redisStore) Options(cookie *CookieOption) {
+func (s *redisStore) Options(cookie CookieOption) {
 	s.RedisStoreImpl.Options = &sessions.Options{
 		Path:     cookie.Path,
 		Domain:   cookie.Domain,

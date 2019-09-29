@@ -44,8 +44,8 @@ type (
  * 初始化会话接口
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewSession(ctx *gin.Context) ISession {
-	name := ctx.MustGet(sessionName).(string)
-	store := ctx.MustGet(sessionStore).(store.IStore)
+	name := ctx.MustGet(_sessionName).(string)
+	store := ctx.MustGet(_sessionStoreName).(store.IStore)
 
 	return &session{
 		name:    name,
@@ -123,10 +123,10 @@ func (s *session) Flashes(vars ...string) []interface{} {
 func (s *session) Save() error {
 	if s.written {
 		err := s.Session().Save(s.request, s.writer)
-
 		if err == nil {
 			s.written = false
 		}
+
 		return err
 	}
 

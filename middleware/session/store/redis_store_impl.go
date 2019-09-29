@@ -15,7 +15,7 @@ import (
 )
 
 /* ================================================================================
- * RedisRedis存储接口实现
+ * redis store impl
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -27,7 +27,7 @@ type (
 		DefaultMaxAge int
 		serializer    serializer.ISerializer
 		maxLength     int
-		keyPrefix     string
+		prefix        string
 		encryptKey    string
 	}
 )
@@ -35,17 +35,17 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 实例化RedisStoreImpl
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRedisStoreImpl(size int, network, address, password string, encryptKey []byte) (*RedisStoreImpl, error) {
+func NewRedisStoreImpl(network, address, password string, encryptKey []byte, size, dbIndex int) (*RedisStoreImpl, error) {
 	return NewRedisStoreImplWithPool(&redis.Pool{
-		MaxIdle:     size,
-		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			return dial(network, address, password, dbIndex)
+		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
 			return err
 		},
-		Dial: func() (redis.Conn, error) {
-			return dial(network, address, password)
-		},
+		MaxIdle:     size,
+		IdleTimeout: 120 * time.Second,
 	}, encryptKey)
 }
 
@@ -58,7 +58,7 @@ func NewRedisStoreImplWithPool(pool *redis.Pool, encryptKey []byte) (*RedisStore
 		Options: &sessions.Options{
 			Path: "/",
 		},
-		DefaultMaxAge: 600,
+		DefaultMaxAge: 300,
 		encryptKey:    string(encryptKey),
 		maxLength:     1024000,
 		serializer:    serializer.GobSerializer{},
@@ -137,8 +137,8 @@ func (s *RedisStoreImpl) Save(r *http.Request, w http.ResponseWriter, session *s
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 设置Redis Key 前缀
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *RedisStoreImpl) SetKeyPrefix(keyPrefix string) {
-	s.keyPrefix = keyPrefix
+func (s *RedisStoreImpl) SetPrefix(prefix string) {
+	s.prefix = prefix
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -188,7 +188,7 @@ func (s *RedisStoreImpl) load(session *sessions.Session) (bool, error) {
 		return false, err
 	}
 
-	data, err := conn.Do("GET", fmt.Sprintf("%s%s", s.keyPrefix, session.ID))
+	data, err := conn.Do("GET", fmt.Sprintf("%s%s", s.prefix, session.ID))
 	if err != nil {
 		return false, err
 	}
@@ -230,7 +230,7 @@ func (s *RedisStoreImpl) save(session *sessions.Session) error {
 		age = s.DefaultMaxAge
 	}
 
-	_, err = conn.Do("SETEX", fmt.Sprintf("%s%s", s.keyPrefix, session.ID), age, sessionValue)
+	_, err = conn.Do("SETEX", fmt.Sprintf("%s%s", s.prefix, session.ID), age, sessionValue)
 
 	return err
 }
@@ -242,7 +242,7 @@ func (s *RedisStoreImpl) delete(session *sessions.Session) error {
 	conn := s.Pool.Get()
 	defer conn.Close()
 
-	if _, err := conn.Do("DEL", fmt.Sprintf("%s%s", s.keyPrefix, session.ID)); err != nil {
+	if _, err := conn.Do("DEL", fmt.Sprintf("%s%s", s.prefix, session.ID)); err != nil {
 		return err
 	}
 
@@ -252,7 +252,7 @@ func (s *RedisStoreImpl) delete(session *sessions.Session) error {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * 连接redis
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func dial(network, address, password string) (redis.Conn, error) {
+func dial(network, address, password string, dbIndex int) (redis.Conn, error) {
 	c, err := redis.Dial(network, address)
 	if err != nil {
 		return nil, err
@@ -265,12 +265,14 @@ func dial(network, address, password string) (redis.Conn, error) {
 		}
 	}
 
-	/*
-		if _, err := c.Do("SELECT", "0"); err != nil {
-			c.Close()
-			return nil, err
-		}
-	*/
+	if dbIndex < 0 {
+		dbIndex = 0
+	}
+
+	if _, err := c.Do("SELECT", dbIndex); err != nil {
+		c.Close()
+		return nil, err
+	}
 
 	return c, err
 }

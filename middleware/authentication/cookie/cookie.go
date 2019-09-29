@@ -29,47 +29,47 @@ type (
 	}
 
 	CookieExtend struct {
-		Roles        []string     //角色（多个之间用逗号分隔）
-		Cookie       *ging.Cookie //cookie
-		AuthorizeUrl string       //认证url
-		DefaultUrl   string       //认证通过默认返回url
-		PassUrls     []string     //直接通过的url
-		EncryptKey   string       //加密key
-		IsRefresh    bool         //是否滑动刷新
-		IsEnabled    bool         //是否启用验证
+		Roles         []string    //角色（多个之间用逗号分隔）
+		Cookie        ging.Cookie //cookie
+		AuthorizeUrl  string      //认证url
+		DefaultUrl    string      //认证通过默认返回url
+		PassUrls      []string    //直接通过的url
+		EncryptSecret string      //加密秘匙
+		IsSliding     bool        //是否滑动失效期
+		IsDisabled    bool        //是否禁用验证
 	}
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登入
+ * logon
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) Logon(ctx *gin.Context, payload *ging.TokenPayload) bool {
-	tokenIdentity := ging.NewToken(cookieAuth.Extend.EncryptKey)
+func (s *cookieAuthentication) Logon(ctx *gin.Context, payload *ging.TokenPayload) bool {
+	tokenIdentity := ging.NewToken(s.Extend.EncryptSecret)
 	tokenIdentity.SetPayload(payload)
 	tokenIdentity.SetAuthenticated(true)
 
-	cookieAuth.SaveCookie(ctx, tokenIdentity, true)
+	s.SaveCookie(ctx, tokenIdentity)
 
 	return true
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登出
+ * logoff
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) Logoff(ctx *gin.Context) {
-	cookieAuth.ClearCookie(ctx)
+func (s *cookieAuthentication) Logoff(ctx *gin.Context) {
+	s.ClearCookie(ctx)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 身份验证
+ * validation
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) Validation() gin.HandlerFunc {
+func (s *cookieAuthentication) Validation() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		requestPath := ctx.Request.URL.Path
-		isPass := strings.HasPrefix(requestPath, cookieAuth.Extend.AuthorizeUrl)
+		isPass := strings.HasPrefix(requestPath, s.Extend.AuthorizeUrl)
 		if !isPass {
 			//允许指定模式的Url跳过验证
-			for _, passUrl := range cookieAuth.Extend.PassUrls {
+			for _, passUrl := range s.Extend.PassUrls {
 				isPass = strings.HasPrefix(requestPath, passUrl)
 				if isPass {
 					break
@@ -77,34 +77,34 @@ func (cookieAuth *cookieAuthentication) Validation() gin.HandlerFunc {
 			}
 		}
 
-		if !cookieAuth.Extend.IsEnabled || isPass {
+		if s.Extend.IsDisabled || isPass {
 			//如果未启用认证或跳过url
 			var currentToken ging.IToken
 
 			if isPass {
 				//默认返回地址处理
-				if isReturnUrl := cookieAuth.defaultReturnUrl(ctx); isReturnUrl {
+				if isReturnUrl := s.defaultReturnUrl(ctx); isReturnUrl {
 					return
 				}
 
-				if tokenIdentity, err := cookieAuth.parseTokenIdentity(ctx); err == nil {
+				if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
 					currentToken = tokenIdentity
 				}
 			}
 
-			cookieAuth.SaveCookie(ctx, currentToken, cookieAuth.Extend.IsRefresh)
+			s.SaveCookie(ctx, currentToken)
 		} else {
-			if tokenIdentity, err := cookieAuth.parseTokenIdentity(ctx); err == nil {
+			if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
 				if !tokenIdentity.IsAuthenticated() {
-					if isSuccess := cookieAuth.Validate(ctx, cookieAuth.Extend, tokenIdentity); !isSuccess {
-						cookieAuth.ErrorHandler(ctx)
+					if isSuccess := s.Validate(ctx, s.Extend, tokenIdentity); !isSuccess {
+						s.ErrorHandler(ctx)
 						return
 					}
 				}
 
-				cookieAuth.SaveCookie(ctx, tokenIdentity, cookieAuth.Extend.IsRefresh)
+				s.SaveCookie(ctx, tokenIdentity)
 			} else {
-				cookieAuth.ErrorHandler(ctx)
+				s.ErrorHandler(ctx)
 				return
 			}
 		}
@@ -112,37 +112,37 @@ func (cookieAuth *cookieAuthentication) Validation() gin.HandlerFunc {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 保存Cookie
+ * save cookie
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdentity ging.IToken, isRefresh bool) {
-	if tokenIdentity != nil && isRefresh {
+func (s *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdentity ging.IToken) {
+	if tokenIdentity != nil && s.Extend.IsSliding {
 		//默认有效期15分钟
 		maxAge := 900
-		if cookieAuth.Extend.Cookie.MaxAge > 0 {
-			maxAge = cookieAuth.Extend.Cookie.MaxAge
+		if s.Extend.Cookie.MaxAge > 0 {
+			maxAge = s.Extend.Cookie.MaxAge
 		}
 
 		expiresDate := time.Now().Add(time.Duration(maxAge) * time.Second)
 		tokenIdentity.SetExpires(expiresDate.Unix())
 
 		tokenName := ging.TOKEN_IDENTITY
-		if len(cookieAuth.Extend.Cookie.Name) > 0 {
-			tokenName = cookieAuth.Extend.Cookie.Name
+		if len(s.Extend.Cookie.Name) > 0 {
+			tokenName = s.Extend.Cookie.Name
 		}
 
 		path := "/"
-		if len(cookieAuth.Extend.Cookie.Path) > 0 {
-			path = cookieAuth.Extend.Cookie.Path
+		if len(s.Extend.Cookie.Path) > 0 {
+			path = s.Extend.Cookie.Path
 		}
 
 		tokenCookie := http.Cookie{
 			Name:     tokenName,
 			Value:    tokenIdentity.GetToken(),
 			Path:     path,
-			Domain:   cookieAuth.Extend.Cookie.Domain,
+			Domain:   s.Extend.Cookie.Domain,
 			MaxAge:   maxAge,
-			HttpOnly: cookieAuth.Extend.Cookie.HttpOnly,
-			Secure:   cookieAuth.Extend.Cookie.Secure,
+			HttpOnly: s.Extend.Cookie.HttpOnly,
+			Secure:   s.Extend.Cookie.Secure,
 		}
 
 		http.SetCookie(ctx.Writer, &tokenCookie)
@@ -154,50 +154,49 @@ func (cookieAuth *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdenti
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 清除Cookie
+ * clear cookie
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) ClearCookie(ctx *gin.Context) {
+func (s *cookieAuthentication) ClearCookie(ctx *gin.Context) {
 	tokenName := ging.TOKEN_IDENTITY
-	if len(cookieAuth.Extend.Cookie.Name) > 0 {
-		tokenName = cookieAuth.Extend.Cookie.Name
+	if len(s.Extend.Cookie.Name) > 0 {
+		tokenName = s.Extend.Cookie.Name
 	}
 
 	path := "/"
-	if len(cookieAuth.Extend.Cookie.Path) > 0 {
-		path = cookieAuth.Extend.Cookie.Path
+	if len(s.Extend.Cookie.Path) > 0 {
+		path = s.Extend.Cookie.Path
 	}
 
 	tokenCookie := http.Cookie{
 		Name:     tokenName,
 		Value:    "",
 		Path:     path,
-		Domain:   cookieAuth.Extend.Cookie.Domain,
+		Domain:   s.Extend.Cookie.Domain,
 		MaxAge:   -1,
-		HttpOnly: cookieAuth.Extend.Cookie.HttpOnly,
-		Secure:   cookieAuth.Extend.Cookie.Secure,
+		HttpOnly: s.Extend.Cookie.HttpOnly,
+		Secure:   s.Extend.Cookie.Secure,
 	}
 
 	http.SetCookie(ctx.Writer, &tokenCookie)
 
-	//清空Token标识
 	ctx.Set(ging.TOKEN_IDENTITY, nil)
+
 	ctx.Next()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 错误处理
+ * error process
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) ErrorHandler(ctx *gin.Context) {
+func (s *cookieAuthentication) ErrorHandler(ctx *gin.Context) {
 	requestUrl := ctx.Request.URL.RequestURI()
 	if requestUrl == "" || requestUrl == "/" || requestUrl == "/#/" || requestUrl == "#/" {
 		requestUrl = ctx.Request.URL.RequestURI()
 	}
 
-	//认证失败处理
 	if ging.IsAjax(ctx) {
 		result.JsonResult(ctx, ging.NewError(199, "身份未认证")).Render()
 	} else {
-		authorizeUrl := fmt.Sprintf("%s?returnurl=%s", cookieAuth.Extend.AuthorizeUrl, glib.UrlEncode(requestUrl))
+		authorizeUrl := fmt.Sprintf("%s?returnurl=%s", s.Extend.AuthorizeUrl, glib.UrlEncode(requestUrl))
 		result.RedirectResult(ctx, authorizeUrl).Render()
 	}
 
@@ -205,14 +204,14 @@ func (cookieAuth *cookieAuthentication) ErrorHandler(ctx *gin.Context) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 默认返回地址处理
+ * default return url
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
+func (s *cookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
 	isReturnUrl := false
-	if ctx.Request.URL.Path == cookieAuth.Extend.AuthorizeUrl {
+	if ctx.Request.URL.Path == s.Extend.AuthorizeUrl {
 		returnUrl := ctx.DefaultQuery("returnurl", "")
 		if len(returnUrl) == 0 {
-			redirectUrl := fmt.Sprintf("%s?returnurl=%s", ctx.Request.URL.Path, glib.UrlEncode(cookieAuth.Extend.DefaultUrl))
+			redirectUrl := fmt.Sprintf("%s?returnurl=%s", ctx.Request.URL.Path, glib.UrlEncode(s.Extend.DefaultUrl))
 			result.RedirectResult(ctx, redirectUrl).Render()
 
 			ctx.Abort()
@@ -225,15 +224,15 @@ func (cookieAuth *cookieAuthentication) defaultReturnUrl(ctx *gin.Context) bool 
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 解析Token标识
+ * parse token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (cookieAuth *cookieAuthentication) parseTokenIdentity(ctx *gin.Context) (ging.IToken, error) {
-	tokenIdentity := ging.NewToken(cookieAuth.Extend.EncryptKey)
+func (s *cookieAuthentication) parseTokenIdentity(ctx *gin.Context) (ging.IToken, error) {
+	tokenIdentity := ging.NewToken(s.Extend.EncryptSecret)
 	tokenName := ging.TOKEN_IDENTITY
 	tokenValue := ""
 
-	if len(cookieAuth.Extend.Cookie.Name) > 0 {
-		tokenName = cookieAuth.Extend.Cookie.Name
+	if len(s.Extend.Cookie.Name) > 0 {
+		tokenName = s.Extend.Cookie.Name
 	}
 
 	if cookieToken, err := ctx.Request.Cookie(tokenName); err == nil {

@@ -1,22 +1,22 @@
 package ging
 
 import (
+	"fmt"
+	"time"
+)
+
+import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/sanxia/ging/plugin/pongo"
 )
 
-const (
-	DEBUG   string = "debug"
-	RELEASE string = "release"
-)
-
 /* ================================================================================
-* Http引擎数据结构
-* qq group: 582452342
-* email   : 2091938785@qq.com
+ * http engine
+ * qq group: 582452342
+ * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
-* ================================================================================ */
+ * ================================================================================ */
 type (
 	IHttpEngine interface {
 		Engine() *gin.Engine
@@ -35,48 +35,50 @@ type (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 实例化HttpEngine
+ * instantiating http engine
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewHttpEngine(templatePath string, model string, isDebug bool) IHttpEngine {
+	fmt.Printf("%v ging engine instantiating\n", time.Now())
+
 	if isDebug {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		switch model {
-		case "debug":
+		case DEBUG:
 			gin.SetMode(gin.DebugMode)
-		case "release":
+		case RELEASE:
 			gin.SetMode(gin.ReleaseMode)
 		default:
 			gin.SetMode(gin.TestMode)
 		}
 	}
 
-	//初始化HttpEngine
+	//initialization http engine
 	httpEngine := &httpEngine{
 		engine: gin.New(),
 	}
 
-	//注册中间件
+	//register middleware
 	httpEngine.Middleware(
 		gin.Logger(),
 		gin.Recovery(),
 	)
 
-	//注册渲染引擎
+	//register the rendering engine
 	httpEngine.Render(pongo.NewRender(templatePath))
 
 	return httpEngine
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取gin.Engine
+ * get gin.Engine
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Engine() *gin.Engine {
 	return s.engine
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * gin中间件设置
+ * set gin middleware
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Middleware(args ...gin.HandlerFunc) {
 	count := len(args)
@@ -88,14 +90,14 @@ func (s *httpEngine) Middleware(args ...gin.HandlerFunc) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * gin未命中路由处理器设置
+ * set not found route processor
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) NoRoute(routeHandler gin.HandlerFunc) {
 	s.engine.NoRoute(routeHandler)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * gin路由组设置
+ * set route group
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Group(path string) *gin.RouterGroup {
 	if len(path) > 0 {
@@ -106,7 +108,7 @@ func (s *httpEngine) Group(path string) *gin.RouterGroup {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Http Get 动作
+ * http get action
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Get(groupName, path string, actionHandler ActionHandler) gin.IRoutes {
 	if group := s.Group(groupName); group != nil {
@@ -121,7 +123,7 @@ func (s *httpEngine) Get(groupName, path string, actionHandler ActionHandler) gi
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Http POST 动作
+ * http post action
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Post(groupName, path string, actionHandler ActionHandler) gin.IRoutes {
 	if group := s.Group(groupName); group != nil {
@@ -136,14 +138,14 @@ func (s *httpEngine) Post(groupName, path string, actionHandler ActionHandler) g
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * gin渲染器设置
+ * set html renderer
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Render(render render.HTMLRender) {
 	s.engine.HTMLRender = render
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * gin静态文件设置
+ * set static file
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *httpEngine) Static(routerPath, filePath string) {
 	s.engine.Static(routerPath, filePath)

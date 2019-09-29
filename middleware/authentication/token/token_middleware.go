@@ -7,7 +7,7 @@ import (
 )
 
 /* ================================================================================
- * Token认证中间件模块
+ * Token Auth Middleware
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -17,8 +17,7 @@ var (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Token认证中间件
- * extend: Token扩展数据
+ * token auth middleware
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func TokenAuthenticationMiddleware(extend TokenExtend) gin.HandlerFunc {
 	tokenAuth = &tokenAuthentication{
@@ -28,12 +27,11 @@ func TokenAuthenticationMiddleware(extend TokenExtend) gin.HandlerFunc {
 		},
 	}
 
-	//身份验证
 	return tokenAuth.Validation()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 自定义验证扩展点
+ * custom validate
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func customValidate(ctx *gin.Context, extend TokenExtend, tokenIdentity ging.IToken) bool {
 	isInRole := true
@@ -48,14 +46,14 @@ func customValidate(ctx *gin.Context, extend TokenExtend, tokenIdentity ging.ITo
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登入
+ * logon
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Logon(ctx *gin.Context, payload *ging.TokenPayload) {
 	tokenAuth.Logon(ctx, payload)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登出
+ * logoff
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Logoff(ctx *gin.Context) {
 	tokenAuth.Logoff(ctx)

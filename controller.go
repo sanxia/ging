@@ -1,19 +1,25 @@
 package ging
 
 import (
+	"fmt"
+	"time"
+)
+
+import (
 	"github.com/gin-gonic/gin"
 	"github.com/sanxia/ging/middleware/session"
+	"log"
 )
 
 /* ================================================================================
- * 控制器数据结构
+ * controller
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 控制器接口
+ * controller interface
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	IController interface {
@@ -29,11 +35,12 @@ type (
 		ClearSession(ctx *gin.Context)
 
 		GetToken(ctx *gin.Context) IToken
+		GetApp() IApp
 	}
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 控制器数据结构
+ * controller data structure
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	Controller struct {
@@ -44,9 +51,11 @@ type (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 初始化控制器
+ * instantiating the controller
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewController(groupName string, engine IHttpEngine, args ...IActionFilter) IController {
+	fmt.Printf("%v ging engine controller %s instantiating\n", time.Now(), groupName)
+
 	controller := &Controller{
 		GroupName: groupName,
 		Engine:    engine,
@@ -56,7 +65,7 @@ func NewController(groupName string, engine IHttpEngine, args ...IActionFilter) 
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * IHttpAction接口实现 － Http Get请求
+ * IHttpAction interface implementation － Http Get
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Get(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
 	handlerFunc := ctrl.Action(actionHandler, args...)
@@ -69,7 +78,7 @@ func (ctrl *Controller) Get(path string, actionHandler ActionHandler, args ...in
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * IHttpAction接口实现 － Http Post请求
+ * IHttpAction interface implementation － Http Post
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Post(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
 	handlerFunc := ctrl.Action(actionHandler, args...)
@@ -82,7 +91,7 @@ func (ctrl *Controller) Post(path string, actionHandler ActionHandler, args ...i
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * IHttpAction接口实现 － Http Delete请求
+ * IHttpAction interface implementation － Http Delete
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Delete(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
 	handlerFunc := ctrl.Action(actionHandler, args...)
@@ -95,7 +104,7 @@ func (ctrl *Controller) Delete(path string, actionHandler ActionHandler, args ..
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * IHttpAction接口实现 － Http Patch请求
+ * IHttpAction interface implementation － Http Patch
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Patch(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
 	handlerFunc := ctrl.Action(actionHandler, args...)
@@ -108,7 +117,7 @@ func (ctrl *Controller) Patch(path string, actionHandler ActionHandler, args ...
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * IHttpAction接口实现 － Http Options请求
+ * IHttpAction interface implementation － Http Options
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Options(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
 	handlerFunc := ctrl.Action(actionHandler, args...)
@@ -121,7 +130,7 @@ func (ctrl *Controller) Options(path string, actionHandler ActionHandler, args .
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * IHttpAction接口实现 － Http Head请求
+ * IHttpAction interface implementation － Http Head
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Head(path string, actionHandler ActionHandler, args ...interface{}) gin.IRoutes {
 	handlerFunc := ctrl.Action(actionHandler, args...)
@@ -134,7 +143,7 @@ func (ctrl *Controller) Head(path string, actionHandler ActionHandler, args ...i
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 控制器动作
+ * controller action
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{}) func(*gin.Context) {
 	return func(ctx *gin.Context) {
@@ -150,7 +159,7 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 					continue
 				}
 
-				//判断是否禁用当前动作过滤器
+				//determine if the current motion filter is disabled
 				if actionFilter, isOk := arg.(IActionFilter); isOk {
 					if len(actionFilters) == 0 {
 						actionFilters = make(IActionFilterList, argsCount)
@@ -169,8 +178,8 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 		}
 
 		if isFilterEnabled {
-			//顺序执行之前的控制器过滤器
-			//Before返回非空IActionResult即终止
+			//the controller filter before sequential execution
+			//Before returns non-empty IActionResult is terminated
 			for _, filter := range ctrl.filters {
 				if filter != nil {
 					if filterResult = filter.Before(ctx); filterResult != nil {
@@ -180,7 +189,7 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 			}
 
 			if filterResult == nil {
-				//顺序执行之前的动作过滤器
+				//the action filter before the sequential execution
 				for _, filter := range actionFilters {
 					if filter != nil {
 						if filterResult = filter.Before(ctx); filterResult != nil {
@@ -200,12 +209,12 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 		}
 
 		if isFilterEnabled {
-			//逆序执行之后的动作过滤器
+			//action filter after reverse sequence execution
 			for i := len(actionFilters) - 1; i >= 0; i-- {
 				actionFilters[i].After(ctx)
 			}
 
-			//逆序执行之后的控制器过滤器
+			//controller filter after reverse sequence execution
 			for i := len(ctrl.filters) - 1; i >= 0; i-- {
 				ctrl.filters[i].After(ctx)
 			}
@@ -214,7 +223,9 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置控制器过滤器（控制器的方法执行前后都会执行过滤器接口，过滤器接口集合不支持排序）
+ * set up the controller filter
+ * The filter interface is executed before and after the controller's method is executed
+ * and the filter interface collection does not support sorting
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) Filter(filters ...IActionFilter) IController {
 	if len(filters) == 0 {
@@ -235,30 +246,32 @@ func (ctrl *Controller) Filter(filters ...IActionFilter) IController {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取会话对象
+ * get session objects
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) getSession(ctx *gin.Context) session.ISession {
 	newSession := session.NewSession(ctx)
+
+	log.Printf("ctrl getSession values: %v", newSession.Values())
 	//log.Printf("ctrl getSession: id: %s, values: %v", newSession.SessionId(), newSession.Values())
 
 	return newSession
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 保存会话值
+ * save session values
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) SaveSession(ctx *gin.Context, name, value string) {
 	if len(name) == 0 || len(value) == 0 {
 		return
 	}
 
-	session := ctrl.getSession(ctx)
-	session.Set(name, value)
-	session.Save()
+	currentSession := ctrl.getSession(ctx)
+	currentSession.Set(name, value)
+	currentSession.Save()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取会话值
+ * get session values
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) GetSession(ctx *gin.Context, name string) string {
 	value := ""
@@ -274,7 +287,7 @@ func (ctrl *Controller) GetSession(ctx *gin.Context, name string) string {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 校验会话值
+ * check session value
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, args ...bool) bool {
 	isSuccess := true
@@ -285,8 +298,8 @@ func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, ar
 		return isSuccess
 	}
 
-	session := ctrl.getSession(ctx)
-	if sessionValue, isOk := session.Get(name).(string); isOk {
+	currentSession := ctrl.getSession(ctx)
+	if sessionValue, isOk := currentSession.Get(name).(string); isOk {
 		if sessionValue != value {
 			isSuccess = false
 		}
@@ -294,18 +307,18 @@ func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, ar
 		isSuccess = false
 	}
 
-	//判断是否立即销毁会话数据
+	//determine whether session data is destroyed immediately
 	if len(args) > 0 {
 		isRemove = args[0]
 	}
 
 	if isRemove {
-		session.Delete(name)
-		session.Save()
+		currentSession.Delete(name)
+		currentSession.Save()
 	} else {
 		if isSuccess {
-			session.Delete(name)
-			session.Save()
+			currentSession.Delete(name)
+			currentSession.Save()
 		}
 	}
 
@@ -313,36 +326,33 @@ func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, ar
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 移除会话值
+ * remove session values
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) RemoveSession(ctx *gin.Context, name string) {
-	session := ctrl.getSession(ctx)
-	session.Delete(name)
-	session.Save()
+	currentSession := ctrl.getSession(ctx)
+	currentSession.Delete(name)
+	currentSession.Save()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 清除会话
+ * clear session
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) ClearSession(ctx *gin.Context) {
-	session := ctrl.getSession(ctx)
-	session.Clear()
-	session.Save()
+	currentSession := ctrl.getSession(ctx)
+	currentSession.Clear()
+	currentSession.Save()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取Token接口
+ * get IToken interface
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (ctrl *Controller) GetToken(ctx *gin.Context) IToken {
-	var currentToken IToken
+	return GetToken(ctx)
+}
 
-	if ctx != nil {
-		if tokenIdentity, isOk := ctx.Get(TOKEN_IDENTITY); tokenIdentity != nil && isOk {
-			if userToken, isOk := tokenIdentity.(*Token); isOk {
-				currentToken = userToken
-			}
-		}
-	}
-
-	return currentToken
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * Get the IApp interface
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (ctrl *Controller) GetApp() IApp {
+	return GetApp()
 }

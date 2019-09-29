@@ -1,31 +1,36 @@
 package ging
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 )
 
 /* ================================================================================
- * ging web framework
+ * ging web integration framework
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
-
 type (
 	IApp interface {
 		GetName() string
-		GetSettings() *Settings
+		GetSetting() *Setting
 		GetRouter() IHttpRouter
+
+		RegisterTask(task ITask) error
+		GetTasks() []ITask
 	}
 )
 
 type (
 	app struct {
-		name     string
-		settings *Settings
-		router   IHttpRouter
+		name       string
+		setting    *Setting
+		router     IHttpRouter
+		tasks      []ITask
+		IsActiving bool
 	}
 )
 
@@ -34,56 +39,36 @@ var (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * app 初始化
+ * init
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func init() {
-	fmt.Printf("%v ging app init\n", time.Now())
+	fmt.Printf("%v ging engine app init\n", time.Now())
 	apps = make([]IApp, 0)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 初始化App
+ * instantiating app
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewApp(name string, settings *Settings, router IHttpRouter) IApp {
+func NewApp(name string, setting *Setting, router IHttpRouter) IApp {
 	return &app{
-		name:     name,
-		settings: settings,
-		router:   router,
+		name:    name,
+		setting: setting,
+		router:  router,
+		tasks:   make([]ITask, 0),
 	}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取App Name
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *app) GetName() string {
-	return s.name
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取App Settings
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *app) GetSettings() *Settings {
-	return s.settings
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取Http Router
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *app) GetRouter() IHttpRouter {
-	return s.router
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 注册App
+ * register app
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func RegisterApp(args ...IApp) error {
-	fmt.Printf("%v ging app register\n", time.Now())
+	fmt.Printf("%v ging engine app register\n", time.Now())
 
 	var err *CustomError
 
 	for _, currentApp := range args {
 		if currentApp == nil || len(currentApp.GetName()) == 0 {
-			err = NewCustomError("App名称不能为空")
+			err = NewCustomError("app name is not found")
 			break
 		}
 
@@ -104,18 +89,79 @@ func RegisterApp(args ...IApp) error {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取App
+ * get app
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func GetApp(name string) IApp {
-	fmt.Printf("%v ging get app\n", time.Now())
+func GetApp(args ...string) IApp {
+	var currentApp IApp
 
-	if len(apps) != 0 && len(name) != 0 {
-		for _, app := range apps {
-			if app.GetName() == strings.ToLower(name) {
-				return app
+	if len(apps) != 0 {
+		if len(args) == 0 {
+			for _, _currentApp := range apps {
+				if _currentApp, isOk := _currentApp.(*app); isOk && _currentApp.IsActiving {
+					currentApp = _currentApp
+					break
+				}
+			}
+		} else {
+			for _, _currentApp := range apps {
+				if _currentApp.GetName() == strings.ToLower(args[0]) {
+					currentApp = _currentApp
+					break
+				}
 			}
 		}
 	}
 
+	return currentApp
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * get app name
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) GetName() string {
+	return s.name
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * get app setting
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) GetSetting() *Setting {
+	return s.setting
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * get http router
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) GetRouter() IHttpRouter {
+	return s.router
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * register task
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) RegisterTask(task ITask) error {
+	if task == nil || len(task.GetName()) == 0 {
+		return errors.New("argments error")
+	}
+
+	isExists := false
+	for _, oldTask := range s.tasks {
+		if oldTask.GetName() == task.GetName() {
+			isExists = true
+			break
+		}
+	}
+
+	if !isExists {
+		s.tasks = append(s.tasks, task)
+	}
+
 	return nil
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * get a task collection
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *app) GetTasks() []ITask {
+	return s.tasks
 }

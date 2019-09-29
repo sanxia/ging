@@ -13,21 +13,21 @@ import (
 )
 
 /* ================================================================================
- * 动作结果
+ * Action Result
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 结果接口
+ * action result interface
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type IActionResult interface {
 	Render()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 视图结果数据结构
+ * view result data
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 type (
 	ActionResult struct {
@@ -40,7 +40,7 @@ type (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染Html模版
+ * rendering Html templates
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Html(template string, args ...interface{}) {
 	if result.Context.IsAborted() {
@@ -57,7 +57,7 @@ func (result *ActionResult) Html(template string, args ...interface{}) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染Json字符串
+ * rendering json strings
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Json(args ...interface{}) {
 	if result.Context.IsAborted() {
@@ -67,7 +67,7 @@ func (result *ActionResult) Json(args ...interface{}) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染字符串
+ * rendering text strings
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) String(args ...interface{}) {
 	if result.Context.IsAborted() {
@@ -78,7 +78,7 @@ func (result *ActionResult) String(args ...interface{}) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染Xml
+ * rendering xml strings
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Xml(args ...interface{}) {
 	if result.Context.IsAborted() {
@@ -89,7 +89,7 @@ func (result *ActionResult) Xml(args ...interface{}) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染磁盘物理文件
+ * rendering disk file
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) File(filepath string) {
 	if result.Context.IsAborted() {
@@ -100,7 +100,7 @@ func (result *ActionResult) File(filepath string) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染字节数据
+ * rendering bytes
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Data(data []byte, args ...interface{}) {
 	if result.Context.IsAborted() {
@@ -111,7 +111,7 @@ func (result *ActionResult) Data(data []byte, args ...interface{}) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染io数据流
+ * rendering io stream
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Stream(step func(w io.Writer) bool) {
 	if result.Context.IsAborted() {
@@ -122,14 +122,14 @@ func (result *ActionResult) Stream(step func(w io.Writer) bool) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染io数据流
+ * rendering error strings
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Error(msg string) {
 	result.String(msg, 400)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染err数据流
+ * rendering redirect url
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (result *ActionResult) Redirect(url string) {
 	render.Redirect(result.Context, url)

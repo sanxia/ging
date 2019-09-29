@@ -4,10 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-import (
-	"huilibao.com/core/common"
-)
-
 /* ================================================================================
  * 跨域中间件模块
  * qq group: 582452342

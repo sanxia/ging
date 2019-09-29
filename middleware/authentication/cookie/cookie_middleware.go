@@ -7,7 +7,7 @@ import (
 )
 
 /* ================================================================================
- * 表单认证中间件模块
+ * cookie middleware
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -17,8 +17,7 @@ var (
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * Cookie认证中间件
- * extend: Cookie扩展数据
+ * cookie auth middleware
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func CookieAuthenticationMiddleware(extend CookieExtend) gin.HandlerFunc {
 	cookieAuth = &cookieAuthentication{
@@ -28,12 +27,11 @@ func CookieAuthenticationMiddleware(extend CookieExtend) gin.HandlerFunc {
 		},
 	}
 
-	//身份验证
 	return cookieAuth.Validation()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 自定义验证扩展点
+ * custom validate
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func customValidate(ctx *gin.Context, extend CookieExtend, tokenIdentity ging.IToken) bool {
 	isInRole := true
@@ -48,14 +46,14 @@ func customValidate(ctx *gin.Context, extend CookieExtend, tokenIdentity ging.IT
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登入
+ * logon
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Logon(ctx *gin.Context, payload *ging.TokenPayload) bool {
 	return cookieAuth.Logon(ctx, payload)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 登出
+ * logoff
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func Logoff(ctx *gin.Context) {
 	cookieAuth.Logoff(ctx)
