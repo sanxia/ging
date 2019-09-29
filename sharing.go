@@ -17,27 +17,24 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
-	//sharding interface
 	ISharing interface {
-		GetDatabaseKey() string //数据库key
-		GetTableKey() string    //表key
+		GetDatabaseKey() string //database key
+		GetTableKey() string    //table key
 
 		ISharingDatabase
 		ISharingTable
 	}
 
-	//database sharding interface
 	ISharingDatabase interface {
-		GetDatabaseShardingField() string         //获取数据库分片字段名
-		GetDatabaseShardingCount() int32          //获取数据库分片数
-		SetDatabaseShardingRoute(routeNode int32) //设置数据库分片路由（大于-1则表示直接路由到指定库，此值优先与分片字段）
+		GetDatabaseShardingField() string         //db sharding fiele name
+		GetDatabaseShardingCount() int32          //db sharding count
+		SetDatabaseShardingRoute(routeNode int32) //set db sharding route（大于-1则表示直接路由到指定库，此值优先与分片字段）
 	}
 
-	//table sharding interface
 	ISharingTable interface {
-		GetTableShardingField() string         //获取表分片字段名
-		GetTableShardingCount() int32          //获取表分片数
-		SetTableShardingRoute(routeNode int32) //设置数据表分片路由（大于-1则表示直接路由到指定表，此值优先与分片字段）
+		GetTableShardingField() string         //table sharding fiele name
+		GetTableShardingCount() int32          //table sharding count
+		SetTableShardingRoute(routeNode int32) //set table sharding route（大于-1则表示直接路由到指定表，此值优先与分片字段）
 	}
 )
 
@@ -48,29 +45,6 @@ func GetDatabaseMap(dbKey string) *gorm.DB {
 	log.Printf("ging engine sharing GetDatabaseMap dbKey: %s", dbKey)
 
 	setting := GetApp().GetSetting()
-
-	var currentDatabase DatabaseConnectionOption
-	for _, database := range setting.Database.Connections {
-		if database.Key == dbKey {
-			currentDatabase = database
-			break
-		}
-	}
-
-	isLog := !setting.Log.IsDisabled && setting.Database.IsLog
-	dbMap, err := getDatabaseConnection(currentDatabase, isLog)
-	if err != nil {
-		panic(fmt.Sprintf("ging engine database connection fault: %s", err.Error()))
-	}
-
-	return dbMap
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * get db
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func GetDatabaseMap_old(dbKey string, setting Setting) *gorm.DB {
-	log.Printf("ging engine sharing GetDatabaseMap dbKey: %s", dbKey)
 
 	var currentDatabase DatabaseConnectionOption
 	for _, database := range setting.Database.Connections {
