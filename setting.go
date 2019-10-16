@@ -1,5 +1,13 @@
 package ging
 
+import (
+	"fmt"
+)
+
+import (
+	"github.com/sanxia/glib"
+)
+
 /* ================================================================================
  * setting
  * qq group: 582452342
@@ -45,12 +53,36 @@ type (
 		AudioHost  string
 		VideoHost  string
 		FileHost   string
+		Logo       string
+		Seo        DomainSeo
+		Icp        DomainIcp
 		Template   DomainTemplate
+		Copyright  string
+		Version    string
 		StatusCode string
 		IsSsl      bool
 		IsTest     bool
 		IsDebug    bool
 		IsOnline   bool
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * domain seo
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	DomainSeo struct {
+		Author      string `form:"author" json:"author"`
+		Title       string `form:"title" json:"title"`
+		Keywords    string `form:"keywords" json:"keywords"`
+		Description string `form:"description" json:"description"`
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * domain icp
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	DomainIcp struct {
+		IcpNo     string `form:"icp_no" json:"icp_no"`
+		RecordNo  string `form:"record_no" json:"record_no"`
+		RecordUrl string `form:"record_url" json:"record_url"`
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -89,7 +121,7 @@ type (
 		Time       TimeLimit    //time limit
 		IsCaptcha  bool         //human-machine verification code
 		IsInvite   bool         //need an invitation code
-		IsApprove  bool         //是否需要审核
+		IsApprove  bool         //need approve
 		IsUsername bool         //allow your username to register
 		IsMobile   bool         //allow your phone to register
 		IsDisabled bool
@@ -494,3 +526,86 @@ type (
 		IsDisabled bool
 	}
 )
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取阿里云网关域名
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *AliyunSms) Domain() string {
+	domain := fmt.Sprintf("%s://%s", "http", s.Gateway)
+
+	if s.IsSsl {
+		domain = fmt.Sprintf("%s://%s", "https", s.Gateway)
+	}
+
+	return domain
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 获取阿里大鱼网关域名
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s *AlidayuSms) Domain() string {
+	domain := fmt.Sprintf("%s://%s", "http", s.Gateway)
+
+	if s.IsSsl {
+		domain = fmt.Sprintf("%s://%s", "https", s.Gateway)
+	}
+
+	return domain
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 判断用户id是否存在
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s Blackwhite) IsInUsers(userId string) bool {
+	isInUsers := false
+
+	for _, _userId := range s.Users {
+		if _userId == userId {
+			isInUsers = true
+			break
+		}
+	}
+
+	return isInUsers
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 判断ip是否存在
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s Blackwhite) IsInIps(ip string) bool {
+	isInIps := false
+
+	if ips := glib.StringToStringSlice(ip, ":"); len(ips) > 1 {
+		ip = ips[0]
+	}
+
+	for _, _ip := range s.Ips {
+		if _ip == ip {
+			isInIps = true
+			break
+		}
+	}
+
+	return isInIps
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 判断当前时刻是否属于限制时段中
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func (s TimeLimit) IsTime() bool {
+	isTime := false
+	if !s.IsDisabled {
+		if s.Opening >= 0 && s.Closing >= 0 {
+			hour := glib.GetCurrentHour()
+			minute := glib.GetCurrentMinute()
+
+			totalMinute := hour*60 + minute
+
+			if totalMinute >= int32(s.Opening) && totalMinute <= int32(s.Closing) {
+				isTime = true
+			}
+		}
+	}
+
+	return isTime
+}

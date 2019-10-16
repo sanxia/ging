@@ -51,8 +51,13 @@ func (paging *Paging) Offset() int64 {
 		return 0
 	}
 
-	offset := (paging.PagingIndex - 1) * paging.PagingSize
-	return offset
+	offsetIndex := (paging.PagingIndex - 1) * paging.PagingSize
+
+	if offsetIndex > paging.TotalRecord {
+		offsetIndex = paging.TotalRecord
+	}
+
+	return offsetIndex
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

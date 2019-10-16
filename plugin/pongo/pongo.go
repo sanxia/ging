@@ -14,6 +14,7 @@ import (
 import (
 	"github.com/flosch/pongo2"
 	"github.com/gin-gonic/gin/render"
+	"github.com/sanxia/glib"
 )
 
 /* ================================================================================
@@ -74,7 +75,7 @@ func New(options RenderOptions) *PongoRender {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (p PongoRender) Instance(templateName string, data interface{}) render.Render {
 	templateFilename, _ := filepath.Abs(path.Join(p.Options.TemplatePath, templateName))
-	tmplKey := Md5(templateFilename)
+	tmplKey := glib.Md5(templateFilename)
 
 	log.Printf("tmpl instance tmplKey: %s, tmplName: %s", tmplKey, templateFilename)
 
@@ -105,6 +106,26 @@ func (p PongoRender) Render(w http.ResponseWriter) error {
 	return err
 }
 
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 渲染模版字符串
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func RenderString(templateString string, data interface{}) (string, error) {
+	tpl, err := pongo2.FromString(templateString)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := tpl.Execute(data.(map[string]interface{}))
+	if err != nil {
+		panic(err)
+	}
+
+	return result, err
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * 赋值内容类型
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func writeContentType(w http.ResponseWriter, value []string) {
 	header := w.Header()
 	if val := header["Content-Type"]; len(val) == 0 {
@@ -186,14 +207,14 @@ func loadTemplate(templatePath string, options RenderOptions) {
 		}
 
 		if isMatched, _ := regexp.MatchString(".*"+extName+"$", templateFilePath); isMatched {
-			if isExists := FileIsExists(templateFilePath); !isExists {
+			if isExists := glib.FileIsExists(templateFilePath); !isExists {
 				continue
 			}
 
 			if tmpl, err := pongo2.FromFile(templateFilePath); err != nil {
 				log.Fatalf("error:  \"%s\": %v", templateFilename, err)
 			} else {
-				tmplKey := Md5(templateFilename)
+				tmplKey := glib.Md5(templateFilename)
 				log.Printf("load template: %s, %s", tmplKey, templateFilePath)
 				templateCache[tmplKey] = tmpl
 				founded = true

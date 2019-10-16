@@ -241,9 +241,13 @@ func (s *fileStorage) PathToUrl(path string, args ...string) string {
 	}
 
 	if GetApp().GetSetting().Domain.IsSsl {
-		domain = fmt.Sprintf("%s://%s", "https", domain)
+		if !strings.HasPrefix(domain, "https") {
+			domain = fmt.Sprintf("%s://%s", "https", domain)
+		}
 	} else {
-		domain = fmt.Sprintf("%s://%s", "http", domain)
+		if !strings.HasPrefix(domain, "http") {
+			domain = fmt.Sprintf("%s://%s", "http", domain)
+		}
 	}
 
 	if len(path) > 0 {

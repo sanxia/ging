@@ -36,11 +36,14 @@ type (
 		IsOnline bool
 	}
 
+	serverInfo struct {
+		Index int
+		Addr  string
+		Now   time.Time
+	}
+
 	serverStatus struct {
-		Index  int
-		Addr   string
-		Now    time.Time
-		Status chan serverStatus
+		stopC chan bool
 	}
 )
 
@@ -63,7 +66,7 @@ func init() {
 	bootstraps = make([]func(IApp), 0)
 
 	engingStatus = &serverStatus{
-		Status: make(chan serverStatus),
+		stopC: make(chan bool),
 	}
 }
 
@@ -82,13 +85,11 @@ func Bootstrap(args ...func(currentApp IApp)) {
 func Start() {
 	fmt.Printf("%v ging engine start\n", time.Now())
 
-	// parse command line
 	cmdLine, err := parseCommandLine()
 	if err != nil {
 		panic(err)
 	}
 
-	// get app
 	currentApp := GetApp(cmdLine.App)
 	if currentApp == nil {
 		panic(errors.New(fmt.Sprintf("app name: %s is not found", cmdLine.App)))
@@ -108,6 +109,8 @@ func Start() {
 		go task.Run(currentApp)
 	}
 
+	serverInfoC := make(chan serverInfo)
+
 	// start http
 	currentSetting := currentApp.GetSetting()
 	for index, port := range currentSetting.Server.Ports {
@@ -122,26 +125,33 @@ func Start() {
 
 		addr := fmt.Sprintf("%s:%d", host, port)
 
-		go httpServe(index, addr, currentApp.GetRouter())
+		go httpServe(index, addr, currentApp.GetRouter(), serverInfoC)
 	}
 
 	index := 0
-	for server := range engingStatus.Status {
+	for server := range serverInfoC {
 		index++
 
 		info := fmt.Sprintf("%v ging engine server %02d on %s Success", server.Now, server.Index, server.Addr)
 		log.Println(info)
 
 		if index == len(currentSetting.Server.Ports) {
-			close(engingStatus.Status)
+			close(serverInfoC)
 		}
 	}
 
-	for {
-		pending := fmt.Sprintf("%v ging engine server Running ...", time.Now())
-		log.Println(pending)
+	pending := fmt.Sprintf("%v ging engine server Running ...", time.Now())
+	log.Println(pending)
 
-		time.Sleep(12 * time.Hour)
+	for {
+		select {
+		case <-engingStatus.stopC:
+			pending = fmt.Sprintf("%v ging engine Exit ...", time.Now())
+			log.Println(pending)
+			return
+		case <-time.After(500 * time.Millisecond):
+			time.Sleep(5 * time.Second)
+		}
 	}
 }
 
@@ -265,8 +275,8 @@ func bootstrapApp(currentApp IApp) {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * http service
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func httpServe(index int, addr string, httpRouter IHttpRouter) {
-	log.Printf("%v ging engine start serve\n", time.Now())
+func httpServe(index int, addr string, httpRouter IHttpRouter, serverInfoC chan<- serverInfo) {
+	log.Printf("%v ging engine start serve %d\n", time.Now(), index)
 
 	routeHandler := httpRouter.Route()
 
@@ -278,7 +288,7 @@ func httpServe(index int, addr string, httpRouter IHttpRouter) {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	engingStatus.Status <- serverStatus{
+	serverInfoC <- serverInfo{
 		Index: index,
 		Addr:  addr,
 		Now:   time.Now(),
