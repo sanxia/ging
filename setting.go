@@ -115,16 +115,17 @@ type (
 	 * sign up option
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	RegisterOption struct {
-		Username   RegisterRule //username rules
-		Password   RegisterRule //password rules
-		Ip         IpLimit      //same ip limit
-		Time       TimeLimit    //time limit
-		IsCaptcha  bool         //human-machine verification code
-		IsInvite   bool         //need an invitation code
-		IsApprove  bool         //need approve
-		IsUsername bool         //allow your username to register
-		IsMobile   bool         //allow your phone to register
-		IsDisabled bool
+		Username          RegisterRule //username rules
+		Password          RegisterRule //password rules
+		Ip                IpLimit      //same ip limit
+		Time              TimeLimit    //time limit
+		IsConfirmPassword bool         //need confirm password
+		IsInvitation      bool         //need an invitation code
+		IsCaptcha         bool         //human-machine verification code
+		IsApprove         bool         //need approve
+		IsUsername        bool         //allow your username to register
+		IsMobile          bool         //allow your phone to register
+		IsDisabled        bool
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
