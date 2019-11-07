@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -60,6 +59,18 @@ type (
 		Size int64  `form:"size" json:"-"`
 	}
 )
+
+var (
+	file IFileStorage
+)
+
+func init() {
+	file = NewFileStorage()
+}
+
+func GetFileStorage() IFileStorage {
+	return file
+}
 
 /* ================================================================================
  * 初始化FileStorage
@@ -254,15 +265,13 @@ func (s *fileStorage) PathToUrl(path string, args ...string) string {
 		if strings.HasPrefix(path, "group") {
 			path = s.FileIdToFilePath(path)
 		} else {
-			staticPaths := strings.Split(GetApp().GetSetting().Storage.Upload.Root, string(os.PathSeparator))
-			if !strings.HasPrefix(path, GetApp().GetSetting().Storage.Upload.Root) {
-				path = filepath.Join(GetApp().GetSetting().Storage.Upload.Root, path)
-			}
+			rootPaths := strings.Split(GetApp().GetSetting().Storage.Upload.Root, string(os.PathSeparator))
 
 			//文件路径替换成url路由
-			path = strings.Replace(path, staticPaths[0], GetApp().GetSetting().Storage.Static.File, -1)
+			path = strings.Replace(path, rootPaths[0], GetApp().GetSetting().Storage.Static.File, 1)
 		}
-		url = fmt.Sprintf("%s/%s", domain, path)
+
+		url = fmt.Sprintf("%s%s%s", domain, string(os.PathSeparator), path)
 	}
 
 	return url
@@ -285,7 +294,7 @@ func (s *fileStorage) UrlToPath(url string, args ...string) string {
 	hosts["file"] = GetApp().GetSetting().Domain.FileHost
 
 	if host, isOk := hosts[resourceCode]; isOk {
-		domain = host
+		domain = glib.FilterHostProtocol(host)
 	}
 
 	if len(url) > 0 {
@@ -300,10 +309,10 @@ func (s *fileStorage) UrlToPath(url string, args ...string) string {
 		if strings.HasPrefix(url, fdfsRouter) {
 			path = s.FilePathToFileId(url)
 		} else {
-			//去除url路由和上传根目录名: static/upload
-			//只存储目录和文件名：2017/09/21/c2bac40d2759fa536f2debdd264d656a.png
-			paths := strings.Split(url, string(os.PathSeparator))[2:]
-			path = strings.Join(paths, string(os.PathSeparator))
+			//url路由变换成文件目录: static -> assets
+			//保存文件目录和文件名：assets/.../09/21/c2bac40d2759fa536f2debdd264d656a.png
+			rootPaths := strings.Split(GetApp().GetSetting().Storage.Upload.Root, string(os.PathSeparator))
+			path = strings.Replace(url, GetApp().GetSetting().Storage.Static.File, rootPaths[0], 1)
 		}
 	}
 

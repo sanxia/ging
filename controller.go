@@ -30,7 +30,7 @@ type (
 
 		SaveSession(ctx *gin.Context, name, value string)
 		GetSession(ctx *gin.Context, name string) string
-		ValidateSession(ctx *gin.Context, name, value string, args ...bool) bool
+		ValidateSession(ctx *gin.Context, name, value string, args ...interface{}) bool
 		RemoveSession(ctx *gin.Context, name string)
 		ClearSession(ctx *gin.Context)
 
@@ -289,7 +289,7 @@ func (ctrl *Controller) GetSession(ctx *gin.Context, name string) string {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * check session value
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, args ...bool) bool {
+func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, args ...interface{}) bool {
 	isSuccess := true
 	isRemove := true
 
@@ -299,24 +299,39 @@ func (ctrl *Controller) ValidateSession(ctx *gin.Context, name, value string, ar
 	}
 
 	currentSession := ctrl.getSession(ctx)
-	if sessionValue, isOk := currentSession.Get(name).(string); isOk {
-		if sessionValue != value {
-			isSuccess = false
-		}
-	} else {
+	sessionValue, isSessionValueOk := currentSession.Get(name).(string)
+	if !isSessionValueOk {
 		isSuccess = false
 	}
 
 	//determine whether session data is destroyed immediately
 	if len(args) > 0 {
-		isRemove = args[0]
+		if _isRemove, isOk := args[0].(bool); isOk {
+			if sessionValue != value {
+				isSuccess = false
+			}
+
+			isRemove = _isRemove
+		} else if validateHandler, isOk := args[0].(func(string) (bool, error)); isOk {
+			if _isRemove, isError := validateHandler(sessionValue); isError != nil {
+				isSuccess = false
+			} else {
+				isRemove = _isRemove
+			}
+		} else {
+			isSuccess = false
+		}
+	} else {
+		if sessionValue != value {
+			isSuccess = false
+		}
 	}
 
-	if isRemove {
+	if isSuccess {
 		currentSession.Delete(name)
 		currentSession.Save()
 	} else {
-		if isSuccess {
+		if isRemove {
 			currentSession.Delete(name)
 			currentSession.Save()
 		}
