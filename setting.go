@@ -238,20 +238,26 @@ type (
 	 * database option
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	DatabaseOption struct {
-		Connections []DatabaseConnectionOption
+		Connections []DatabaseConnection
 		IsLog       bool
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	 * database connection option
+	 * database connection
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-	DatabaseConnectionOption struct {
-		Key      string
+	DatabaseConnection struct {
+		Key           string
+		Database      string
+		Dialect       string
+		ShardingCount int32
+		Servers       []DatabaseServer
+	}
+
+	DatabaseServer struct {
+		Index    int32
 		Username string
 		Password string
 		Host     string
-		Database string
-		Dialect  string
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

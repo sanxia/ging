@@ -194,7 +194,7 @@ func (s *cookieAuthentication) ErrorHandler(ctx *gin.Context) {
 	}
 
 	if ging.IsAjax(ctx) {
-		result.JsonResult(ctx, ging.NewError(199, "身份未认证")).Render()
+		result.JsonResult(ctx, ging.NewError(119, "身份未认证")).Render()
 	} else {
 		authorizeUrl := fmt.Sprintf("%s?returnurl=%s", s.Extend.AuthorizeUrl, glib.UrlEncode(requestUrl))
 		result.RedirectResult(ctx, authorizeUrl).Render()

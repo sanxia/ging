@@ -2,13 +2,13 @@ package ging
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sanxia/ging/middleware/session"
-	"log"
 )
 
 /* ================================================================================

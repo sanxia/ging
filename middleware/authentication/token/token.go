@@ -227,7 +227,7 @@ func (s *tokenAuthentication) ErrorHandler(ctx *gin.Context) {
 
 	//认证失败处理
 	if ging.IsAjax(ctx) {
-		result.JsonResult(ctx, ging.NewError(199, "身份未认证")).Render()
+		result.JsonResult(ctx, ging.NewError(119, "身份未认证")).Render()
 	} else {
 		authorizeUrl := fmt.Sprintf("%s?returnurl=%s", s.Extend.AuthorizeUrl, glib.UrlEncode(requestUrl))
 		result.RedirectResult(ctx, authorizeUrl).Render()
