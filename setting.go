@@ -115,16 +115,16 @@ type (
 	 * sign up option
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	RegisterOption struct {
-		Username          RegisterRule //username rules
-		Password          RegisterRule //password rules
-		Ip                IpLimit      //same ip limit
-		Time              TimeLimit    //time limit
-		IsConfirmPassword bool         //need confirm password
-		IsInvitation      bool         //need an invitation code
-		IsCaptcha         bool         //human-machine verification code
-		IsApprove         bool         //need approve
-		IsUsername        bool         //allow your username to register
-		IsMobile          bool         //allow your phone to register
+		Username          RegisterRule       //username rules
+		Password          RegisterRule       //password rules
+		Invitation        RegisterInvitation //invitation
+		Ip                IpLimit            //same ip limit
+		Time              TimeLimit          //time limit
+		IsConfirmPassword bool               //need confirm password
+		IsCaptcha         bool               //human-machine verification code
+		IsApprove         bool               //need approve
+		IsUsername        bool               //allow your username to register
+		IsMobile          bool               //allow your phone to register
 		IsDisabled        bool
 	}
 
@@ -137,12 +137,20 @@ type (
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * sign up for an invitation
+	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+	RegisterInvitation struct {
+		Count      int32 `json:"count"`       //maximum number of invitations
+		IsDisabled bool  `json:"is_disabled"` //is disabled
+	}
+
+	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	 * same Ip limit
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 	IpLimit struct {
-		Minute     int  `json:"minute"` //same ip（minutes）
-		Count      int  `json:"count"`  //same ip max count
-		IsDisabled bool `json:"is_disabled"`
+		Minute     int  `json:"minute"`      //same ip（minutes）
+		Count      int  `json:"count"`       //same ip max count
+		IsDisabled bool `json:"is_disabled"` //is disabled
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -161,10 +161,6 @@ func (ctrl *Controller) Action(actionHandler ActionHandler, args ...interface{})
 
 				//determine if the current motion filter is disabled
 				if actionFilter, isOk := arg.(IActionFilter); isOk {
-					if len(actionFilters) == 0 {
-						actionFilters = make(IActionFilterList, argsCount)
-					}
-
 					actionFilters = append(actionFilters, actionFilter)
 				} else {
 					if isFilterEnabledValue, isOk := arg.(bool); isOk {
