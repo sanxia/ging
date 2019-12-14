@@ -80,7 +80,7 @@ func (s *authorizationFilter) Before(ctx *gin.Context) ging.IActionResult {
 		if s.Authorization != nil {
 			if !s.Authorization.Authorize(userToken) {
 				if isAjax {
-					actionResult = getJsonResult(ctx, ging.NewError(191, "操作权限未被许可"))
+					actionResult = getJsonResult(ctx, ging.NewError(118, "操作权限未被许可"))
 				} else {
 					actionResult = result.RedirectResult(ctx, authUrl)
 				}
@@ -88,7 +88,7 @@ func (s *authorizationFilter) Before(ctx *gin.Context) ging.IActionResult {
 		}
 	} else {
 		if isAjax {
-			actionResult = getJsonResult(ctx, ging.NewError(199, "身份未认证"))
+			actionResult = getJsonResult(ctx, ging.NewError(119, "身份未认证"))
 		} else {
 			actionResult = result.RedirectResult(ctx, authUrl)
 		}

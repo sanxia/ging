@@ -15,7 +15,7 @@ import (
 )
 
 /* ================================================================================
- * 计时器过滤器
+ * 计时过滤器
  * qq group: 582452342
  * email   : 2091938785@qq.com
  * author  : 美丽的地球啊 - mliu
@@ -27,7 +27,7 @@ type timerFilter struct {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 实例化计时器过滤器
+ * 实例化计时过滤器
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func NewTimerFilter(args ...string) ging.IActionFilter {
 	return &timerFilter{
@@ -56,6 +56,6 @@ func (s *timerFilter) After(ctx *gin.Context) {
 		nanoseconds := s.endDate.Sub(s.beginDate).Nanoseconds()
 
 		msg := fmt.Sprintf("total time: %v", nanoseconds)
-		log.Printf("[%s] After %s %v", s.Name, msg, s.endDate)
+		log.Printf("[%s] After %v %s ", s.Name, s.endDate, msg)
 	}
 }

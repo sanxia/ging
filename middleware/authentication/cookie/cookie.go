@@ -43,21 +43,19 @@ type (
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * logon
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *cookieAuthentication) Logon(ctx *gin.Context, payload *ging.TokenPayload) bool {
+func (s *cookieAuthentication) Logon(ctx *gin.Context, payload *ging.TokenPayload) {
 	tokenIdentity := ging.NewToken(s.Extend.EncryptSecret)
 	tokenIdentity.SetPayload(payload)
 	tokenIdentity.SetAuthenticated(true)
 
-	s.SaveCookie(ctx, tokenIdentity)
-
-	return true
+	s.setCookie(ctx, tokenIdentity)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * logoff
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *cookieAuthentication) Logoff(ctx *gin.Context) {
-	s.ClearCookie(ctx)
+	s.clearCookie(ctx)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -67,6 +65,7 @@ func (s *cookieAuthentication) Validation() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		requestPath := ctx.Request.URL.Path
 		isPass := strings.HasPrefix(requestPath, s.Extend.AuthorizeUrl)
+
 		if !isPass {
 			//允许指定模式的Url跳过验证
 			for _, passUrl := range s.Extend.PassUrls {
@@ -78,33 +77,31 @@ func (s *cookieAuthentication) Validation() gin.HandlerFunc {
 		}
 
 		if s.Extend.IsDisabled || isPass {
-			//如果未启用认证或跳过url
-			var currentToken ging.IToken
-
 			if isPass {
-				//默认返回地址处理
 				if isReturnUrl := s.defaultReturnUrl(ctx); isReturnUrl {
 					return
 				}
-
-				if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
-					currentToken = tokenIdentity
-				}
 			}
 
-			s.SaveCookie(ctx, currentToken)
+			if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
+				s.setCookie(ctx, tokenIdentity)
+			}
+
+			ctx.Next()
 		} else {
 			if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
 				if !tokenIdentity.IsAuthenticated() {
 					if isSuccess := s.Validate(ctx, s.Extend, tokenIdentity); !isSuccess {
-						s.ErrorHandler(ctx)
+						s.errorHandler(ctx)
 						return
 					}
 				}
 
-				s.SaveCookie(ctx, tokenIdentity)
+				s.setCookie(ctx, tokenIdentity)
+
+				ctx.Next()
 			} else {
-				s.ErrorHandler(ctx)
+				s.errorHandler(ctx)
 				return
 			}
 		}
@@ -114,10 +111,10 @@ func (s *cookieAuthentication) Validation() gin.HandlerFunc {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * save cookie
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdentity ging.IToken) {
+func (s *cookieAuthentication) setCookie(ctx *gin.Context, tokenIdentity ging.IToken) {
 	if tokenIdentity != nil && s.Extend.IsSliding {
-		//默认有效期15分钟
-		maxAge := 900
+		//有效期默认15分钟
+		maxAge := 15 * 60
 		if s.Extend.Cookie.MaxAge > 0 {
 			maxAge = s.Extend.Cookie.MaxAge
 		}
@@ -150,13 +147,12 @@ func (s *cookieAuthentication) SaveCookie(ctx *gin.Context, tokenIdentity ging.I
 
 	//传递Token标识
 	ctx.Set(ging.TOKEN_IDENTITY, tokenIdentity)
-	ctx.Next()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * clear cookie
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *cookieAuthentication) ClearCookie(ctx *gin.Context) {
+func (s *cookieAuthentication) clearCookie(ctx *gin.Context) {
 	tokenName := ging.TOKEN_IDENTITY
 	if len(s.Extend.Cookie.Name) > 0 {
 		tokenName = s.Extend.Cookie.Name
@@ -180,14 +176,12 @@ func (s *cookieAuthentication) ClearCookie(ctx *gin.Context) {
 	http.SetCookie(ctx.Writer, &tokenCookie)
 
 	ctx.Set(ging.TOKEN_IDENTITY, nil)
-
-	ctx.Next()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * error process
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *cookieAuthentication) ErrorHandler(ctx *gin.Context) {
+func (s *cookieAuthentication) errorHandler(ctx *gin.Context) {
 	requestUrl := ctx.Request.URL.RequestURI()
 	if requestUrl == "" || requestUrl == "/" || requestUrl == "/#/" || requestUrl == "#/" {
 		requestUrl = ctx.Request.URL.RequestURI()

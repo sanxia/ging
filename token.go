@@ -18,18 +18,18 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 const (
-	TOKEN_IDENTITY string = "__ging_u__"
+	TOKEN_IDENTITY string = "__ging_t__"
 )
 
 type (
 	IToken interface {
 		GetToken() string
-		ParseToken(token string) error
+		ParseToken(token, userAgent string) error
 
 		GetPayload() *TokenPayload
 		SetPayload(payload *TokenPayload)
 
-		SetExpires(expires int64)
+		SetExpire(expire int64)
 		SetAuthenticated(isAuthenticated bool)
 
 		IsAuthenticated() bool
@@ -46,15 +46,18 @@ type (
 	}
 
 	TokenPayload struct {
+		Owner           string                 `json:"iss"`              //签发者
+		Domain          string                 `json:"aud"`              //接收域
 		UserId          string                 `json:"sub"`              //用户id
 		Username        string                 `json:"username"`         //用户名
 		Nickname        string                 `json:"nickname"`         //用户昵称
 		Avatar          string                 `json:"avatar"`           //用户图像
 		Roles           []string               `json:"roles"`            //角色名集合
+		UserAgent       string                 `json:"ua"`               //客户端代理数据
 		Extend          map[string]interface{} `json:"extend"`           //扩展数据
-		Start           int64                  `json:"iat"`              //签发时间（距离1970-1-1的秒数）
-		Expires         int64                  `json:"exp"`              //过期时间（距离1970-1-1的秒数）
 		IsAuthenticated bool                   `json:"is_authenticated"` //是否已验证
+		Start           int64                  `json:"iat"`              //签发时间（距离1970-1-1的秒数）
+		Expire          int64                  `json:"exp"`              //过期时间（距离1970-1-1的秒数）
 	}
 )
 
@@ -85,7 +88,7 @@ func (s *Token) GetToken() string {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * parse token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *Token) ParseToken(token string) error {
+func (s *Token) ParseToken(token, userAgent string) error {
 	if len(token) == 0 {
 		return errors.New("token format error")
 	}
@@ -129,6 +132,11 @@ func (s *Token) ParseToken(token string) error {
 		return errors.New("token expired error")
 	}
 
+	//ua是否匹配
+	if isUserAgent := s.payload.UserAgent == userAgent; !isUserAgent {
+		return errors.New("token ua error")
+	}
+
 	return nil
 }
 
@@ -147,15 +155,15 @@ func (s *Token) SetPayload(payload *TokenPayload) {
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * set expires
+ * set expire
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *Token) SetExpires(expires int64) {
+func (s *Token) SetExpire(expire int64) {
 	s.payload.Start = time.Now().Unix()
 
-	if expires <= 0 {
-		s.payload.Expires = s.payload.Start
+	if expire <= 0 {
+		s.payload.Expire = s.payload.Start
 	} else {
-		s.payload.Expires = expires
+		s.payload.Expire = expire
 	}
 }
 
@@ -193,6 +201,7 @@ func (s *Token) IsAuthenticated() bool {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *Token) IsValid() bool {
 	isValid := false
+
 	if signature := s.tokenSignature(); strings.ToLower(s.signature) == strings.ToLower(signature) {
 		isValid = true
 	}
@@ -206,17 +215,17 @@ func (s *Token) IsValid() bool {
 func (s *Token) IsExpired() bool {
 	isExpired := false
 
-	if s.payload.Start <= 0 || s.payload.Expires <= 0 {
+	if s.payload.Start <= 0 || s.payload.Expire <= 0 {
 		isExpired = true
 	}
 
 	//签发日期是否大于等于失效日期
-	if s.payload.Start >= s.payload.Expires {
+	if s.payload.Start >= s.payload.Expire {
 		isExpired = true
 	}
 
 	//当前日期是否大于失效日期
-	if time.Now().After(time.Unix(s.payload.Expires, 0)) {
+	if time.Now().After(time.Unix(s.payload.Expire, 0)) {
 		isExpired = true
 	}
 

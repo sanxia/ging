@@ -45,18 +45,23 @@ type (
  * logon
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *tokenAuthentication) Logon(ctx *gin.Context, payload *ging.TokenPayload) {
+	//ua finger
+	if userAgent, isOk := ctx.Request.Header["User-Agent"]; isOk {
+		payload.UserAgent = glib.Sha256(userAgent[0])
+	}
+
 	tokenIdentity := ging.NewToken(s.Extend.EncryptSecret)
 	tokenIdentity.SetPayload(payload)
 	tokenIdentity.SetAuthenticated(true)
 
-	s.SaveToken(ctx, tokenIdentity)
+	s.setToken(ctx, tokenIdentity)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * logoff
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *tokenAuthentication) Logoff(ctx *gin.Context) {
-	s.ClearToken(ctx)
+	s.clearToken(ctx)
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -66,6 +71,7 @@ func (s *tokenAuthentication) Validation() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		requestPath := ctx.Request.URL.Path
 		isPass := strings.HasPrefix(requestPath, s.Extend.AuthorizeUrl)
+
 		if !isPass {
 			//enable url pass
 			for _, passUrl := range s.Extend.PassUrls {
@@ -77,18 +83,17 @@ func (s *tokenAuthentication) Validation() gin.HandlerFunc {
 		}
 
 		if s.Extend.IsDisabled || isPass {
-			var currentToken ging.IToken
 			if isPass {
 				if isReturnUrl := s.defaultReturnUrl(ctx); isReturnUrl {
 					return
 				}
-
-				if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
-					currentToken = tokenIdentity
-				}
 			}
 
-			s.SaveToken(ctx, currentToken)
+			if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
+				s.setToken(ctx, tokenIdentity)
+			}
+
+			ctx.Next()
 		} else {
 			if tokenIdentity, err := s.parseTokenIdentity(ctx); err == nil {
 				if !tokenIdentity.IsAuthenticated() {
@@ -98,7 +103,9 @@ func (s *tokenAuthentication) Validation() gin.HandlerFunc {
 					}
 				}
 
-				s.SaveToken(ctx, tokenIdentity)
+				s.setToken(ctx, tokenIdentity)
+
+				ctx.Next()
 			} else {
 				s.ErrorHandler(ctx)
 				return
@@ -110,38 +117,36 @@ func (s *tokenAuthentication) Validation() gin.HandlerFunc {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * save token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *tokenAuthentication) SaveToken(ctx *gin.Context, tokenIdentity ging.IToken) {
+func (s *tokenAuthentication) setToken(ctx *gin.Context, tokenIdentity ging.IToken) {
 	if tokenIdentity != nil && s.Extend.IsSliding {
 		//default 15 minutes
-		maxAge := 900
+		maxAge := 15 * 30
 		if s.Extend.Cookie.MaxAge > 0 {
 			maxAge = s.Extend.Cookie.MaxAge
 		}
 
 		expiresDate := time.Now().Add(time.Duration(maxAge) * time.Second)
-		tokenIdentity.SetExpires(expiresDate.Unix())
+		tokenIdentity.SetExpire(expiresDate.Unix())
 
 		//save token to response
 		tokenTicket := tokenIdentity.GetToken()
 		if s.Extend.IsCookie {
-			s.SaveTokenCookie(ctx, tokenTicket)
+			s.setTokenForCookie(ctx, tokenTicket)
 		} else {
-			s.SaveTokenHeader(ctx, tokenTicket)
+			s.setTokenForHeader(ctx, tokenTicket)
 		}
 	}
 
 	//传递Token标识
 	ctx.Set(ging.TOKEN_IDENTITY, tokenIdentity)
-
-	ctx.Next()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * save token to cookie
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *tokenAuthentication) SaveTokenCookie(ctx *gin.Context, tokenTicket string) {
-	//默认有效期15分钟
-	maxAge := 900
+func (s *tokenAuthentication) setTokenForCookie(ctx *gin.Context, tokenTicket string) {
+	//有效期默认15分钟
+	maxAge := 15 * 30
 	if s.Extend.Cookie.MaxAge > 0 {
 		maxAge = s.Extend.Cookie.MaxAge
 	}
@@ -172,7 +177,7 @@ func (s *tokenAuthentication) SaveTokenCookie(ctx *gin.Context, tokenTicket stri
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * save token to http header
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *tokenAuthentication) SaveTokenHeader(ctx *gin.Context, tokenTicket string) {
+func (s *tokenAuthentication) setTokenForHeader(ctx *gin.Context, tokenTicket string) {
 	tokenName := ging.TOKEN_IDENTITY
 	if len(s.Extend.Cookie.Name) > 0 {
 		tokenName = s.Extend.Cookie.Name
@@ -182,9 +187,9 @@ func (s *tokenAuthentication) SaveTokenHeader(ctx *gin.Context, tokenTicket stri
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 清除Token
+ * claer Token
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (s *tokenAuthentication) ClearToken(ctx *gin.Context) {
+func (s *tokenAuthentication) clearToken(ctx *gin.Context) {
 	tokenCookieName := ging.TOKEN_IDENTITY
 	if len(s.Extend.Cookie.Name) > 0 {
 		tokenCookieName = s.Extend.Cookie.Name
@@ -212,8 +217,6 @@ func (s *tokenAuthentication) ClearToken(ctx *gin.Context) {
 
 	//清空Token标识
 	ctx.Set(ging.TOKEN_IDENTITY, nil)
-
-	ctx.Next()
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -241,6 +244,7 @@ func (s *tokenAuthentication) ErrorHandler(ctx *gin.Context) {
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func (s *tokenAuthentication) defaultReturnUrl(ctx *gin.Context) bool {
 	isReturnUrl := false
+
 	if ctx.Request.URL.Path == s.Extend.AuthorizeUrl {
 		returnUrl := ctx.DefaultQuery("returnurl", "")
 		if len(returnUrl) == 0 {
@@ -289,7 +293,13 @@ func (s *tokenAuthentication) parseTokenIdentity(ctx *gin.Context) (ging.IToken,
 		return nil, errors.New("token identity error")
 	}
 
-	if err := tokenIdentity.ParseToken(tokenValue); err != nil {
+	//ua
+	userAgent := ""
+	if userAgentHeaders, isOk := ctx.Request.Header["User-Agent"]; isOk {
+		userAgent = glib.Sha256(userAgentHeaders[0])
+	}
+
+	if err := tokenIdentity.ParseToken(tokenValue, userAgent); err != nil {
 		return nil, err
 	}
 

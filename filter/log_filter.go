@@ -11,6 +11,7 @@ import (
 
 import (
 	"github.com/sanxia/ging"
+	"github.com/sanxia/glib"
 )
 
 /* ================================================================================
@@ -40,8 +41,9 @@ func NewLogFilter(args ...string) ging.IActionFilter {
 func (s *logFilter) Before(ctx *gin.Context) ging.IActionResult {
 	url := ctx.Request.RequestURI
 	method := ctx.Request.Method
+	ip, _ := glib.SplitIpPort(ctx.ClientIP())
 
-	log.Printf("[%s] Before %s %s %v", s.Name, method, url, time.Now())
+	log.Printf("[%s] Before %s %s %s %v", s.Name, ip, method, url, time.Now())
 
 	return nil
 }
