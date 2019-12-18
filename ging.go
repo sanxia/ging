@@ -26,6 +26,8 @@ type (
 		Route() *gin.Engine
 	}
 
+	bootstrapFunc func(IApp)
+
 	commandLine struct {
 		App      string
 		Host     string
@@ -53,8 +55,8 @@ const (
 )
 
 var (
-	bootstraps   []func(IApp)
-	engingStatus *serverStatus
+	bootstrapFuncs []bootstrapFunc
+	engingStatus   *serverStatus
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -63,7 +65,7 @@ var (
 func init() {
 	fmt.Printf("%v ging engine init\n", time.Now())
 
-	bootstraps = make([]func(IApp), 0)
+	bootstrapFuncs = make([]bootstrapFunc, 0)
 
 	engingStatus = &serverStatus{
 		stopC: make(chan bool),
@@ -73,9 +75,11 @@ func init() {
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * bootstrap
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func Bootstrap(args ...func(currentApp IApp)) {
-	for _, bootstrapFunc := range args {
-		bootstraps = append(bootstraps, bootstrapFunc)
+func Bootstrap(args ...bootstrapFunc) {
+	fmt.Printf("%v ging engine bootstrap\n", time.Now())
+
+	for _, _bootstrapFunc := range args {
+		bootstrapFuncs = append(bootstrapFuncs, _bootstrapFunc)
 	}
 }
 
@@ -85,11 +89,13 @@ func Bootstrap(args ...func(currentApp IApp)) {
 func Start() {
 	fmt.Printf("%v ging engine start\n", time.Now())
 
+	//parse cmd
 	cmdLine, err := parseCommandLine()
 	if err != nil {
 		panic(err)
 	}
 
+	//active current app
 	currentApp := GetApp(cmdLine.App)
 	if currentApp == nil {
 		panic(errors.New(fmt.Sprintf("app name: %s is not found", cmdLine.App)))
@@ -109,7 +115,7 @@ func Start() {
 		go task.Run(currentApp)
 	}
 
-	serverInfoC := make(chan serverInfo)
+	serverInfoChan := make(chan serverInfo)
 
 	// start http
 	currentSetting := currentApp.GetSetting()
@@ -125,18 +131,18 @@ func Start() {
 
 		addr := fmt.Sprintf("%s:%d", host, port)
 
-		go httpServe(index, addr, currentApp.GetRouter(), serverInfoC)
+		go httpServe(index, addr, currentApp.GetRouter(), serverInfoChan)
 	}
 
 	index := 0
-	for server := range serverInfoC {
+	for server := range serverInfoChan {
 		index++
 
 		info := fmt.Sprintf("%v ging engine server %02d on %s Success", server.Now, server.Index, server.Addr)
 		log.Println(info)
 
 		if index == len(currentSetting.Server.Ports) {
-			close(serverInfoC)
+			close(serverInfoChan)
 		}
 	}
 
@@ -249,7 +255,7 @@ func commandAppSetting(appSetting *Setting, cmdLine *commandLine) {
  * activing current app
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func activingApp(currentApp IApp) {
-	fmt.Printf("%v ging engine start activing\n", time.Now())
+	fmt.Printf("%v ging engine activing app\n", time.Now())
 
 	for _, _currentApp := range apps {
 		if _currentApp.GetName() == currentApp.GetName() {
@@ -265,17 +271,17 @@ func activingApp(currentApp IApp) {
  * bootstrap current app
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 func bootstrapApp(currentApp IApp) {
-	fmt.Printf("%v ging engine start bootstrap\n", time.Now())
+	fmt.Printf("%v ging engine bootstrap app\n", time.Now())
 
-	for _, bootstrap := range bootstraps {
-		bootstrap(currentApp)
+	for _, _bootstrapFunc := range bootstrapFuncs {
+		_bootstrapFunc(currentApp)
 	}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  * http service
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func httpServe(index int, addr string, httpRouter IHttpRouter, serverInfoC chan<- serverInfo) {
+func httpServe(index int, addr string, httpRouter IHttpRouter, serverInfoChan chan<- serverInfo) {
 	log.Printf("%v ging engine start serve %d\n", time.Now(), index)
 
 	routeHandler := httpRouter.Route()
@@ -288,7 +294,7 @@ func httpServe(index int, addr string, httpRouter IHttpRouter, serverInfoC chan<
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	serverInfoC <- serverInfo{
+	serverInfoChan <- serverInfo{
 		Index: index,
 		Addr:  addr,
 		Now:   time.Now(),

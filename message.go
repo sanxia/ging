@@ -21,7 +21,7 @@ type (
 	MessagePayload struct {
 		UserId     string `form:"user_id" json:"user_id"`         //用户id
 		TargetId   string `form:"target_id" json:"target_id"`     //目标id
-		TargetType string `form:"target_type" json:"target_type"` //目标类型
+		TargetCode string `form:"target_code" json:"target_code"` //目标编码
 		Action     string `form:"action" json:"action"`           //动作
 		Extend     string `form:"extend" json:"extend"`           //扩展信息
 	}
