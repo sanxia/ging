@@ -24,7 +24,7 @@ type (
 		Logon        LogonOption
 		Session      SessionOption
 		Cache        CacheOption
-		MessageQueue MessageQueueOption
+		Queue        QueueOption
 		Database     DatabaseOption
 		Security     SecurityOption
 		Oauth        OauthOption
@@ -227,19 +227,23 @@ type (
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	 * message queue option
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-	MessageQueueOption struct {
-		Server MessageQueueServerOption
-		Vhost  string
+	QueueOption struct {
+		Server       QueueServerOption
+		VirtualHost  string
+		Exchange     string
+		ExchangeType string
+		IsPersistent bool
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	 * message queue server
 	 * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-	MessageQueueServerOption struct {
-		Host     string
+	QueueServerOption struct {
+		Ip       string
 		Port     int
 		Username string
 		Password string
+		Timeout  int
 	}
 
 	/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
