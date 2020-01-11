@@ -89,13 +89,13 @@ func Bootstrap(args ...bootstrapFunc) {
 func Start() {
 	fmt.Printf("%v ging engine start\n", time.Now())
 
-	//parse cmd
+	// parse cmd
 	cmdLine, err := parseCommandLine()
 	if err != nil {
 		panic(err)
 	}
 
-	//active current app
+	// active current app
 	currentApp := GetApp(cmdLine.App)
 	if currentApp == nil {
 		panic(errors.New(fmt.Sprintf("app name: %s is not found", cmdLine.App)))
@@ -207,13 +207,13 @@ func IsAjax(ctx *gin.Context) bool {
 func parseCommandLine() (*commandLine, error) {
 	fmt.Printf("%v ging engine parse command line\n", time.Now())
 
-	appNameFlag := flag.String("app", "", "请输入要启动的app名称")
-	appHostFlag := flag.String("host", "127.0.0.1", "请输入要绑定的主机ip")
-	appPortFlag := flag.String("port", "19811", "请输入要绑定的主机端口号")
-	sslFlag := flag.String("ssl", "false", "请输入是否SSL模式")
-	debugFlag := flag.String("debug", "true", "请输入是否调试模式")
-	testFlag := flag.String("test", "false", "请输入是否测试模式")
-	onlineFlag := flag.String("online", "false", "请输入是否线上")
+	appNameFlag := flag.String("app", "", "Please enter the name of the app to start")
+	appHostFlag := flag.String("host", "127.0.0.1", "Please enter the host ip to bind")
+	appPortFlag := flag.String("port", "19811", "Please enter the host port number to bind")
+	sslFlag := flag.String("ssl", "false", "Please enter whether SSL mode is enabled")
+	debugFlag := flag.String("debug", "true", "Please enter whether debugging mode is enabled")
+	testFlag := flag.String("test", "false", "Please enter whether to enable test mode")
+	onlineFlag := flag.String("online", "false", "Please enter whether to run online")
 
 	flag.Parse()
 
