@@ -64,8 +64,10 @@ func NewHttpEngine(templatePath string, model string, isDebug bool) IHttpEngine 
 		gin.Recovery(),
 	)
 
-	//register the rendering engine
-	httpEngine.Render(pongo.NewRender(templatePath))
+	//register the rendering template engine
+	httpEngine.Render(pongo.NewPongoTemplate(&pongo.PongoOption{
+		TemplatePath: templatePath,
+	}))
 
 	return httpEngine
 }

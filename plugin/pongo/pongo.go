@@ -24,64 +24,68 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type (
-	RenderOptions struct {
+	PongoTemplate struct {
+		Template *pongo2.Template
+		Data     interface{}
+		Option   *PongoOption
+	}
+
+	PongoOption struct {
 		TemplatePath string
 		Extensions   []string
 		ContentType  string
-	}
-
-	PongoRender struct {
-		Template *pongo2.Template
-		Data     interface{}
-		Options  *RenderOptions
 	}
 )
 
 var (
 	templateCache map[string]*pongo2.Template
-	renderOptions RenderOptions
 )
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取Pongo模版渲染引擎
+ * initializer pongo template engine
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func NewRender(args ...string) *PongoRender {
-	templatePath := "./templates"
+func NewPongoTemplate(args ...*PongoOption) *PongoTemplate {
+	var option *PongoOption
+
 	if len(args) > 0 {
-		templatePath = args[0]
+		option = args[0]
 	}
-	return New(RenderOptions{
-		TemplatePath: templatePath,
-		Extensions:   []string{".tpl", ".tmpl"},
-		ContentType:  "text/html; charset=utf-8",
-	})
+
+	if option == nil {
+		option = new(PongoOption)
+	}
+
+	if len(option.TemplatePath) == 0 {
+		option.TemplatePath = "./templates"
+	}
+
+	if len(option.Extensions) == 0 {
+		option.Extensions = []string{".tpl", ".tmpl"}
+	}
+
+	if len(option.ContentType) == 0 {
+		option.ContentType = "text/html; charset=utf-8"
+	}
+
+	pongoTemplate := &PongoTemplate{
+		Option: option,
+	}
+
+	pongoTemplate.CompileTemplate()
+
+	return pongoTemplate
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取自定义的Pongo模版渲染引擎
+ * gin render interface
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func New(options RenderOptions) *PongoRender {
-	setRenderOptions(options)
-
-	compileTemplates()
-
-	return &PongoRender{
-		Options: &renderOptions,
-	}
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 获取模版渲染器接口
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (p PongoRender) Instance(templateName string, data interface{}) render.Render {
-	templateFilename, _ := filepath.Abs(path.Join(p.Options.TemplatePath, templateName))
+func (p PongoTemplate) Instance(templateName string, data interface{}) render.Render {
+	templateFilename, _ := filepath.Abs(path.Join(p.Option.TemplatePath, templateName))
 	tmplKey := glib.Md5(templateFilename)
-
-	log.Printf("tmpl instance tmplKey: %s, tmplName: %s", tmplKey, templateFilename)
 
 	template, exist := templateCache[tmplKey]
 	if !exist {
-		loadTemplate(templateFilename, *p.Options)
+		p.LoadTemplate(templateFilename)
 		template, exist = templateCache[tmplKey]
 		if !exist {
 			errors.New("not found template file: " + templateFilename)
@@ -90,118 +94,63 @@ func (p PongoRender) Instance(templateName string, data interface{}) render.Rend
 		log.Printf("tmpl file: %s hits...success", templateFilename)
 	}
 
-	return PongoRender{
+	return PongoTemplate{
 		Template: template,
 		Data:     data,
-		Options:  p.Options,
+		Option:   p.Option,
 	}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染接口实现
+ * Render interface impl
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func (p PongoRender) Render(w http.ResponseWriter) error {
-	writeContentType(w, []string{p.Options.ContentType})
+func (p PongoTemplate) Render(w http.ResponseWriter) error {
+	p.WriteContentType(w)
+
 	err := p.Template.ExecuteWriter(p.Data.(map[string]interface{}), w)
 	return err
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 渲染模版字符串
+ * Render interface impl
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func RenderString(templateString string, data interface{}) (string, error) {
-	tpl, err := pongo2.FromString(templateString)
-	if err != nil {
-		panic(err)
-	}
-
-	result, err := tpl.Execute(data.(map[string]interface{}))
-	if err != nil {
-		panic(err)
-	}
-
-	return result, err
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 赋值内容类型
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func writeContentType(w http.ResponseWriter, value []string) {
+func (p PongoTemplate) WriteContentType(w http.ResponseWriter) {
 	header := w.Header()
 	if val := header["Content-Type"]; len(val) == 0 {
-		header["Content-Type"] = value
+		header["Content-Type"] = []string{p.Option.ContentType}
 	}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 设置渲染选项
+ * compile template file
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func setRenderOptions(options RenderOptions) {
-	if len(options.TemplatePath) == 0 {
-		options.TemplatePath = "./templates"
-	}
-	if len(options.Extensions) == 0 {
-		options.Extensions = []string{".tpl", ".tmpl"}
-	}
-
-	renderOptions = options
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 编译模版
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func compileTemplates() {
+func (p PongoTemplate) CompileTemplate() {
 	templateCache = make(map[string]*pongo2.Template)
 
-	allTemplateFiles := getTemplateFilenames(renderOptions.TemplatePath, renderOptions.Extensions)
-	for _, fullfilename := range allTemplateFiles {
+	templateFilenames := getTemplateFilenames(p.Option.TemplatePath, p.Option.Extensions)
+
+	for _, fullfilename := range templateFilenames {
 		filename := path.Base(fullfilename)
 		extName := path.Ext(filename)
 		tmplFilename := strings.TrimSuffix(fullfilename, extName)
 
-		loadTemplate(tmplFilename, renderOptions)
+		p.LoadTemplate(tmplFilename)
 	}
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 加载模版文件集合
+ * load template file
  * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func getTemplateFilenames(templateRoot string, extNames []string) []string {
-	templateRoot, _ = filepath.Abs(templateRoot)
-	log.Printf("getTemplateFilenames templateRoot %s\n", templateRoot)
-
-	filenames := make([]string, 0)
-	err := filepath.Walk(templateRoot, func(fullFilePath string, fileInfo os.FileInfo, err error) error {
-		filename := path.Base(fileInfo.Name())
-		for _, ext := range extNames {
-			if strings.HasSuffix(filename, ext) {
-				filenames = append(filenames, fullFilePath)
-				break
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		log.Printf("filepath.Walk() returned %v\n", err)
-	}
-
-	return filenames
-}
-
-/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- * 加载模版文件
- * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-func loadTemplate(templatePath string, options RenderOptions) {
+func (p PongoTemplate) LoadTemplate(templatePath string) {
 	founded := true
 	templateFilePath, templateFilename := templatePath, templatePath
 
 	if !path.IsAbs(templatePath) {
-		templateFilePath, _ = filepath.Abs(path.Join(options.TemplatePath, templatePath))
+		templateFilePath, _ = filepath.Abs(path.Join(p.Option.TemplatePath, templatePath))
 		templateFilename = templateFilePath
 	}
 
-	for _, extName := range options.Extensions {
+	for _, extName := range p.Option.Extensions {
 		if !strings.HasSuffix(templatePath, extName) {
 			templateFilePath = templateFilename + extName
 		}
@@ -228,4 +177,47 @@ func loadTemplate(templatePath string, options RenderOptions) {
 		errMsg := "template: " + templateFilePath + " not found"
 		log.Fatalf("\"%s\"", errMsg)
 	}
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * render template string
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func RenderString(templateString string, data interface{}) (string, error) {
+	tpl, err := pongo2.FromString(templateString)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := tpl.Execute(data.(map[string]interface{}))
+	if err != nil {
+		panic(err)
+	}
+
+	return result, err
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ * load template disk files
+ * ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+func getTemplateFilenames(templateRoot string, extNames []string) []string {
+	templateRoot, _ = filepath.Abs(templateRoot)
+	log.Printf("getTemplateFilenames templateRoot %s\n", templateRoot)
+
+	filenames := make([]string, 0)
+	err := filepath.Walk(templateRoot, func(fullFilePath string, fileInfo os.FileInfo, err error) error {
+		filename := path.Base(fileInfo.Name())
+		for _, ext := range extNames {
+			if strings.HasSuffix(filename, ext) {
+				filenames = append(filenames, fullFilePath)
+				break
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("filepath.Walk() returned %v\n", err)
+	}
+
+	return filenames
 }

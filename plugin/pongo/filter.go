@@ -2,6 +2,7 @@ package pongo
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -11,8 +12,8 @@ import (
 )
 
 import (
+	"github.com/dustin/go-humanize"
 	"github.com/extemporalgenome/slug"
-	"github.com/flosch/go-humanize"
 	"github.com/flosch/pongo2"
 	"github.com/russross/blackfriday"
 )
@@ -52,9 +53,6 @@ func init() {
 	pongo2.RegisterFilter("markdown", filterMarkdown)
 
 	// Humanize
-	pongo2.RegisterFilter("timeuntil", filterTimeuntilTimesince)
-	pongo2.RegisterFilter("timesince", filterTimeuntilTimesince)
-	pongo2.RegisterFilter("naturaltime", filterTimeuntilTimesince)
 	pongo2.RegisterFilter("naturalday", filterNaturalday)
 	pongo2.RegisterFilter("intcomma", filterIntcomma)
 	pongo2.RegisterFilter("ordinal", filterOrdinal)
@@ -397,29 +395,6 @@ func filterTruncatesentencesHtml(in *pongo2.Value, param *pongo2.Value) (*pongo2
 	return pongo2.AsSafeValue(new_output.String()), nil
 }
 
-func filterTimeuntilTimesince(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
-	basetime, is_time := in.Interface().(time.Time)
-	if !is_time {
-		return nil, &pongo2.Error{
-			Sender:   "filter:timeuntil/timesince",
-			ErrorMsg: "time-value is not a time.Time-instance.",
-		}
-	}
-	var paramtime time.Time
-	if !param.IsNil() {
-		paramtime, is_time = param.Interface().(time.Time)
-		if !is_time {
-			return nil, &pongo2.Error{
-				Sender:   "filter:timeuntil/timesince",
-				ErrorMsg: "time-parameter is not a time.Time-instance.",
-			}
-		}
-	} else {
-		paramtime = time.Now()
-	}
-	return pongo2.AsValue(humanize.TimeDuration(basetime.Sub(paramtime))), nil
-}
-
 func filterIntcomma(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	return pongo2.AsValue(humanize.Comma(int64(in.Integer()))), nil
 }
@@ -431,8 +406,8 @@ func filterNaturalday(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *po
 	basetime, is_time := in.Interface().(time.Time)
 	if !is_time {
 		return nil, &pongo2.Error{
-			Sender:   "filter:naturalday",
-			ErrorMsg: "naturalday-value is not a time.Time-instance.",
+			Sender:    "filter:naturalday",
+			OrigError: errors.New("naturalday-value is not a time.Time-instance."),
 		}
 	}
 	var reference_time time.Time
@@ -440,8 +415,8 @@ func filterNaturalday(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *po
 		reference_time, is_time = param.Interface().(time.Time)
 		if !is_time {
 			return nil, &pongo2.Error{
-				Sender:   "filter:naturalday",
-				ErrorMsg: "naturalday-parameter is not a time.Time-instance.",
+				Sender:    "filter:naturalday",
+				OrigError: errors.New("naturalday-parameter is not a time.Time-instance."),
 			}
 		}
 	} else {
@@ -465,8 +440,8 @@ func ToLocalTime(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
 		return nil, &pongo2.Error{
-			Sender:   "filter:time",
-			ErrorMsg: "Filter argument must be of type 'time.Time'.",
+			Sender:    "filter:time",
+			OrigError: errors.New("Filter argument must be of type 'time.Time'."),
 		}
 	}
 	loc, _ := time.LoadLocation("Local")
@@ -477,8 +452,8 @@ func ToLocationTime(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pong
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
 		return nil, &pongo2.Error{
-			Sender:   "filter:localtime",
-			ErrorMsg: "Filter input argument must be of type 'time.Time'.",
+			Sender:    "filter:localtime",
+			OrigError: errors.New("Filter input argument must be of type 'time.Time'."),
 		}
 	}
 

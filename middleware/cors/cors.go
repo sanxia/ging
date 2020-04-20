@@ -1,6 +1,10 @@
 package cors
 
 import (
+	"strings"
+)
+
+import (
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,14 +16,30 @@ import (
  * ================================================================================ */
 func Cors(corsOption *CorsOption) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !corsOption.IsAllowDomain {
+		if !corsOption.IsAllow {
 			return
 		}
 
-		for _, domain := range corsOption.Domains {
-			c.Header("Access-Control-Allow-Origin", domain)
+		if corsOption.IsAllDomain {
+			c.Header("Access-Control-Allow-Origin", "*")
+		} else {
+			c.Header("Access-Control-Allow-Origin", corsOption.Domain)
+		}
+
+		if corsOption.IsCredentials {
 			c.Header("Access-Control-Allow-Credentials", "true")
-			c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		} else {
+			c.Header("Access-Control-Allow-Credentials", "false")
+		}
+
+		if len(corsOption.Methods) > 0 {
+			method := strings.Join(corsOption.Methods, ",")
+			c.Header("Access-Control-Allow-Methods", method)
+		}
+
+		if len(corsOption.Headers) > 0 {
+			header := strings.Join(corsOption.Headers, ",")
+			c.Header("Access-Control-Allow-Headers", header)
 		}
 
 		c.Next()

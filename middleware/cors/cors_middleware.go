@@ -11,8 +11,13 @@ import (
  * author  : 美丽的地球啊 - mliu
  * ================================================================================ */
 type CorsOption struct {
-	IsAllowDomain bool //是否允许跨域
-	Domains       []string
+	Domain        string
+	Headers       []string
+	Methods       []string
+	IsCredentials bool //是否cookie
+	IsAllDomain   bool //是否所有域
+	IsAllow       bool //是否允许跨域
+
 }
 
 func CorsMiddleware(corsOption *CorsOption) gin.HandlerFunc {
