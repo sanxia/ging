@@ -12,5 +12,5 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/russross/blackfriday v1.5.2
 	github.com/sanxia/gfs v1.0.0
-	github.com/sanxia/glib v1.0.0
+	github.com/sanxia/glib v1.0.1
 )

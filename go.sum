@@ -69,8 +69,8 @@ github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNue
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/sanxia/gfs v1.0.0 h1:jMAAC9ig+lvJmkjP+vNK9+PewSEO5B5/9/fivmVWwaI=
 github.com/sanxia/gfs v1.0.0/go.mod h1:r1F6XH3RNlIAx65LUrEptatcV9Po7L5if95pvEqrq50=
-github.com/sanxia/glib v1.0.0 h1:oipYLg0Q2TGnFl9OOi+P8pT4Xt8FvuaBOVG5CThT+ao=
-github.com/sanxia/glib v1.0.0/go.mod h1:Ti5q4aU5i4DBtl6uivhZ1IiOIH4LOUhOH6xVzsF1bd8=
+github.com/sanxia/glib v1.0.1 h1:VBTNQjRAynKljAA7IbBMhTgL/awTuOkV4L+hX7SoqxI=
+github.com/sanxia/glib v1.0.1/go.mod h1:Ti5q4aU5i4DBtl6uivhZ1IiOIH4LOUhOH6xVzsF1bd8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
